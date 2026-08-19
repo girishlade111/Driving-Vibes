@@ -1,151 +1,288 @@
-# 🎵 Driving Vibes — Minimal Cinematic Music Streaming Web App
+# Driving Vibes 🎵
 
-> **"The background image is the experience. The music player is the only interface."**
-
-A production-ready, ultra-minimal, ambient music streaming web application designed for focused listening and cinematic aesthetics.
-
----
-
-## ✨ Features
-
-- 🌌 **Cinematic Full-Screen Aesthetics**: 95% visual immersion, 5% minimal interaction. Zero clutter, no dashboards, no accounts, and no authentication.
-- 📱 **Responsive Background System**: Automatically serves desktop-specific background on desktop/tablets and mobile-specific background on mobile devices via native `<picture>` media queries.
-- 🎛️ **Floating Mini Player**: Frosted glassmorphic pill fixed at bottom-center with safe-area support (`env(safe-area-inset-bottom)`), micro-progress scrubber, and clean typography.
-- 📜 **Drag-and-Drop Playlist**: Expandable glassmorphic bottom sheet (mobile) / floating drawer (desktop) with intuitive drag-and-drop song reordering that dynamically updates the live playback queue and persists session order.
-- ☁️ **Backblaze B2 S3-Compatible Storage**: Dynamic song discovery from Backblaze B2 buckets using AWS S3 SDK with secure presigned streaming URLs.
-- 🔒 **Zero-Trust Security Model**: Credentials (`B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`) reside strictly on the server and are **never** bundled or exposed to the client.
-- ⚡ **Native Audio Engine**: Single persistent `HTMLAudioElement` instance, continuous playlist looping (`ended` auto-advance), 3-second smart rewind for Previous, and keyboard shortcuts (`Space`, `←`, `→`, `Esc`).
-- 🛡️ **Out-of-the-Box Fallback**: Preloaded ambient demo tracks when Backblaze credentials are not yet configured.
+> **A minimal, cinematic ambient music streaming web app.**  
+> Full-screen backgrounds. Tiny floating player. No login. No dashboard.
 
 ---
 
-## 🏗️ Architecture
+## What It Is
 
-```text
-Browser (React + TypeScript + Vite + Tailwind)
-   │
-   ├── Background System (<picture> with desktop/mobile separation)
-   ├── Mini Player (Fixed bottom-center glassmorphic pill)
-   ├── Expanded Playlist Sheet (Drag-and-drop reordering)
-   └── Audio Engine (Persistent HTMLAudioElement singleton)
-           │
-           ▼
-Backend Server (Express API on port 3001)
-   │
-   ├── S3 ListObjectsV2 (Discovers .mp3, .m4a, .wav, .aac, .ogg, .flac)
-   ├── Dynamic Title Normalizer (Strips prefixes & extensions)
-   ├── S3 GetObjectCommand Presigner (Generates secure streaming URLs)
-   └── Zero B2 Credentials in client bundle
-           │
-           ▼
-Backblaze B2 Storage (S3-Compatible Bucket)
+Driving Vibes is a single-page music player that puts the background image first and the player second.
+
+```
+95% → Cinematic background
+ 5% → Minimal music controls
 ```
 
+Open the site → see the background → press play → music starts. That's it.
+
 ---
 
-## 🚀 Quick Start (Local Development)
+## Features
 
-### 1. Prerequisites
-- **Node.js**: v18.0.0 or later
-- **npm**: v9.0.0 or later
+- 🎬 **Responsive background images** — separate desktop and mobile images, never both downloaded
+- 🎵 **Compact floating player** — tiny pill at the bottom-center of the screen
+- ⏯ **Full playback controls** — Play, Pause, Previous, Next
+- 🔄 **Automatic next-track** — playlist advances without user interaction
+- 📋 **Expandable playlist** — bottom sheet with drag-and-drop reordering
+- 🔀 **User-defined playback order** — drag tracks, session is persisted in localStorage
+- ☁️ **Backblaze B2 integration** — auto-discovers music from your S3-compatible bucket
+- 🔒 **Secure** — B2 credentials stay server-side only, never in the browser bundle
+- ⌨️ **Keyboard shortcuts** — Space, ←, →, Escape
+- ♿ **Accessible** — ARIA labels, focus states, keyboard navigation
+- 📱 **Mobile-safe** — safe-area insets, swipe-down to close, correct touch targets
 
-### 2. Installation
+---
+
+## Quick Start
+
+### 1. Install
+
 ```bash
-git clone <repository-url>
-cd "Driving Vibes"
 npm install
 ```
 
-### 3. Start Development Server
+### 2. Configure Environment
+
+```bash
+cp .env.example .env
+# Edit .env with your Backblaze B2 credentials
+```
+
+> If you skip this step, the player works with 5 built-in demo tracks.
+
+### 3. Add Background Images
+
+Place two images in:
+
+```
+public/
+└── backgrounds/
+    ├── desktop-background.png   (used on screens ≥ 768px)
+    └── mobile-background.png    (used on screens < 768px)
+```
+
+PNG, JPEG, or WebP all work — just update the filenames in `src/App.tsx` if you change the format.
+
+### 4. Run in Development
+
 ```bash
 npm run dev
 ```
-- **Frontend**: `http://localhost:5173`
-- **Backend API**: `http://localhost:3001`
+
+This starts both the backend (port 3001) and the Vite frontend (port 5173) concurrently.
+
+Open `http://localhost:5173`.
+
+### 5. Build for Production
+
+```bash
+npm run build
+npm start          # Serves frontend + API from a single Express server
+```
 
 ---
 
-## ⚙️ Backblaze B2 Configuration Guide
+## Backblaze B2 Configuration
 
-### 1. Create a Bucket in Backblaze B2
-1. Log into your [Backblaze Account](https://www.backblaze.com/).
-2. Go to **B2 Cloud Storage** → **Buckets** → **Create a Bucket**.
-3. Set **Bucket Name** (e.g. `driving-vibes-music`).
-4. Set files to **Private** (recommended for secure presigned streaming) or **Public**.
-5. Note your bucket's **Endpoint** and **Region** (e.g., `s3.us-west-004.backblazeb2.com` and `us-west-004`).
+### Create Your Bucket
 
-### 2. Generate Application Key
-1. Go to **Application Keys** → **Add a New Application Key**.
-2. Restrict access to your music bucket with read permissions (`listObjects`, `getObject`).
-3. Copy the **keyID** and **applicationKey**.
+1. Log into [Backblaze B2](https://www.backblaze.com/b2/cloud-storage.html)
+2. Create a bucket (Private recommended)
+3. Upload your MP3/M4A/WAV/FLAC/OGG files
 
-### 3. Configure CORS on Your Backblaze B2 Bucket
-To allow browser streaming and seeking with byte-range requests, apply this CORS rule in Backblaze B2:
+### Create an Application Key
+
+1. Go to **App Keys** → **Add a New Application Key**
+2. Allow access to your music bucket only
+3. Permissions: Read Only is sufficient (`readFiles`, `listFiles`)
+4. Copy the Key ID and Application Key (shown once)
+
+### Configure `.env`
+
+```env
+B2_ENDPOINT=s3.us-west-004.backblazeb2.com
+B2_REGION=us-west-004
+B2_BUCKET_NAME=your-bucket-name
+B2_APPLICATION_KEY_ID=your-key-id
+B2_APPLICATION_KEY=your-secret-key
+B2_IS_PRIVATE=true
+```
+
+> Find your endpoint on the **Bucket Settings** page in Backblaze.
+
+### CORS for Backblaze (Public Buckets)
+
+If `B2_IS_PRIVATE=false` (public bucket), browsers need CORS headers from B2 directly.
+
+In Backblaze → Bucket → **CORS Rules**, add:
+
 ```json
 [
   {
-    "corsRuleName": "AllowStreamingAndSeeking",
-    "allowedOrigins": ["*"],
-    "allowedOperations": ["s3:GetObject", "s3:HeadObject"],
+    "corsRuleName": "audio-streaming",
+    "allowedOrigins": ["https://your-domain.com", "http://localhost:5173"],
     "allowedHeaders": ["*"],
-    "exposeHeaders": ["Content-Type", "Content-Length", "Accept-Ranges", "Content-Range", "ETag"],
+    "allowedOperations": ["b2_download_file_by_id", "b2_download_file_by_name"],
+    "exposeHeaders": ["Content-Range", "Accept-Ranges", "Content-Length"],
     "maxAgeSeconds": 3600
   }
 ]
 ```
 
-### 4. Set Environment Variables
-Copy `.env.example` to `.env` and fill in your details:
-```bash
-cp .env.example .env
+> If `B2_IS_PRIVATE=true`, CORS is not required since audio is served via presigned URLs which include all necessary headers.
+
+---
+
+## How Automatic Song Discovery Works
+
+Every time a visitor loads the site, the frontend calls:
+
+```
+GET /api/tracks
 ```
 
-```env
-B2_ENDPOINT=s3.us-west-004.backblazeb2.com
-B2_REGION=us-west-004
-B2_BUCKET_NAME=driving-vibes-music
-B2_APPLICATION_KEY_ID=your_key_id_here
-B2_APPLICATION_KEY=your_application_key_here
-B2_IS_PRIVATE=true
-PORT=3001
+The backend:
+
+1. Connects to your Backblaze B2 bucket using the AWS SDK (S3-compatible)
+2. Lists all objects, handling pagination automatically (works with 1000+ songs)
+3. Filters for audio files only (`.mp3`, `.m4a`, `.aac`, `.wav`, `.ogg`, `.flac`, `.opus`)
+4. Sorts them alphabetically/numerically
+5. Generates secure URLs (presigned for private, direct for public)
+6. Returns a clean JSON list of tracks
+
+Upload a new song → it appears on the site on next page load. No code changes needed.
+
+### File Naming Tips
+
+Use numeric prefixes to control playlist order:
+
+```
+01 - Night Drive.mp3
+02 - City Lights.mp3
+03 - Coastal Highway.mp3
+```
+
+The prefix is automatically stripped from the display name:
+
+```
+Night Drive
+City Lights
+Coastal Highway
 ```
 
 ---
 
-## 🖼️ Background Image Customization
+## How Responsive Backgrounds Work
 
-Place your desired background images in the `public/backgrounds/` folder:
+The `<picture>` element with `<source media>` ensures the browser **only downloads** the image for the current viewport:
 
-| File Name | Purpose | Target Devices |
-| :--- | :--- | :--- |
-| `desktop-background.png` | Landscape art | Desktops, laptops, tablets (≥768px) |
-| `mobile-background.png` | Portrait art | Phones, mobile portrait (<768px) |
+```html
+<picture>
+  <source media="(max-width: 767px)"  srcset="/backgrounds/mobile-background.png" />
+  <source media="(min-width: 768px)"  srcset="/backgrounds/desktop-background.png" />
+  <img src="/backgrounds/desktop-background.png" ... />
+</picture>
+```
 
-The `<picture>` tag ensures mobile devices only download the mobile background and desktops only download the desktop background.
+- Mobile (< 768px) → downloads only `mobile-background.png`
+- Desktop (≥ 768px) → downloads only `desktop-background.png`
+- No double-loading, no hidden images, no JS tricks
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## Audio Playback Architecture
+
+```
+Browser AudioElement (single persistent instance)
+        │
+        ├── timeupdate → currentTime state
+        ├── loadedmetadata → duration state
+        ├── playing → isPlaying = true
+        ├── pause → isPlaying = false
+        ├── ended → advance to next track (via ref, not stale closure)
+        └── error → skip to next track after 1.8s
+```
+
+**Key design decisions:**
+
+- **Single `HTMLAudioElement`** — one instance for the entire session; never multiple simultaneous audio sources
+- **Ref-based event handlers** — `ended`/`error` callbacks use `useRef` to access the current `playlist` and `currentIndex`, avoiding the classic React stale closure bug
+- **`preload="metadata"`** — only loads audio metadata on startup, not the full file
+- **No `audio.loop = true`** — playlist advances sequentially via the `ended` event
+
+---
+
+## Security Model
+
+| What | Where | Status |
+|---|---|---|
+| `B2_APPLICATION_KEY` | Server `.env` only | ✅ Never leaves server |
+| `B2_APPLICATION_KEY_ID` | Server `.env` only | ✅ Never leaves server |
+| Presigned URLs | Generated server-side, expire in 2h | ✅ Time-limited |
+| Track list | Fetched via `/api/tracks`, only name + URL | ✅ No raw B2 metadata |
+| Frontend bundle | Contains no credentials | ✅ Safe to inspect |
+
+Run `grep -r "APPLICATION_KEY" dist/` after building — it should return nothing.
+
+---
+
+## Keyboard Shortcuts
 
 | Key | Action |
-| :--- | :--- |
-| <kbd>Space</kbd> | Toggle Play / Pause |
-| <kbd>→</kbd> | Next track |
-| <kbd>←</kbd> | Previous track (or restart if played >3s) |
-| <kbd>Esc</kbd> | Close Playlist panel |
+|---|---|
+| `Space` | Play / Pause |
+| `←` | Previous track (or restart if > 3s played) |
+| `→` | Next track |
+| `Esc` | Close playlist |
 
 ---
 
-## 📦 Production Build & Deployment
+## Project Structure
 
-### Build the Application
-```bash
-npm run build
 ```
-This compiles TypeScript and builds the optimized Vite bundle in `dist/`.
+driving-vibes/
+├── public/
+│   ├── backgrounds/
+│   │   ├── desktop-background.png  ← your desktop image
+│   │   └── mobile-background.png   ← your mobile image
+│   └── favicon.svg
+│
+├── server/
+│   └── index.js                    ← Express API (B2 integration, CORS)
+│
+├── src/
+│   ├── components/
+│   │   ├── Background/             ← Responsive full-screen background
+│   │   ├── MiniPlayer/             ← Compact floating player pill
+│   │   └── Playlist/               ← Bottom sheet with drag-and-drop
+│   ├── hooks/
+│   │   └── useAudioPlayer.ts       ← All audio state & playback logic
+│   ├── types/
+│   │   └── music.ts                ← TypeScript interfaces
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+│
+├── .env.example                    ← Copy to .env and fill in values
+├── .gitignore                      ← .env is gitignored
+├── package.json
+├── tailwind.config.js
+├── tsconfig.json
+└── vite.config.ts
+```
 
-### Run Production Server
-```bash
-npm start
-```
-The Express server will serve both the `/api/tracks` backend and the static frontend assets from `dist/` on `http://localhost:3001`.
+---
+
+## Production Deployment
+
+1. Set environment variables on your hosting platform (not in `.env`)
+2. Run `npm run build` → outputs to `dist/`
+3. Run `npm start` → Express serves `dist/` + `/api/tracks`
+4. Set `FRONTEND_ORIGIN=https://your-domain.com` to lock CORS
+
+---
+
+## License
+
+Personal use. No warranties.

@@ -10,32 +10,80 @@ export function useAudioPlayer() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isTracksLoading, setIsTracksLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [dataSource, setDataSource] = useState<string>('loading');
 
   // Single persistent HTMLAudioElement instance
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Track currently active play promise to avoid play/pause race conditions
-  const playPromiseRef = useRef<Promise<void> | null>(null);
 
-  // Initialize Audio element
+  /**
+   * Stable refs so audio event handlers always access live state values
+   * without needing to re-attach listeners on every state change.
+   */
+  const playlistRef = useRef<Track[]>([]);
+  const currentIndexRef = useRef<number>(0);
+  const isPlayingRef = useRef<boolean>(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    playlistRef.current = playlist;
+  }, [playlist]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // ─── Internal: advance to a track by index (always reads from ref) ────────
+  const goToIndex = useCallback((index: number, autoPlay: boolean) => {
+    const pl = playlistRef.current;
+    if (pl.length === 0 || index < 0 || index >= pl.length) return;
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const target = pl[index];
+    setCurrentIndex(index);
+    currentIndexRef.current = index;
+    setCurrentTime(0);
+    setDuration(0);
+
+    audio.src = target.url;
+    audio.load();
+
+    if (autoPlay) {
+      setIsLoading(true);
+      setError(null);
+      const promise = audio.play();
+      if (promise !== undefined) {
+        promise.catch((e) => {
+          if (e.name !== 'AbortError') {
+            console.warn('Playback error:', e.message);
+            setIsPlaying(false);
+            setIsLoading(false);
+          }
+        });
+      }
+    }
+  }, []);
+
+  // ─── Initialize Audio element once on mount ──────────────────────────────
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'metadata';
     audioRef.current = audio;
 
     const handleTimeUpdate = () => {
-      if (audio) {
-        setCurrentTime(audio.currentTime);
-      }
+      setCurrentTime(audio.currentTime);
     };
 
     const handleLoadedMetadata = () => {
-      if (audio) {
-        setDuration(audio.duration || 0);
-        setIsLoading(false);
-      }
+      setDuration(audio.duration || 0);
     };
 
     const handleWaiting = () => {
@@ -45,29 +93,48 @@ export function useAudioPlayer() {
     const handlePlaying = () => {
       setIsLoading(false);
       setIsPlaying(true);
+      isPlayingRef.current = true;
       setError(null);
     };
 
     const handlePause = () => {
       setIsPlaying(false);
+      isPlayingRef.current = false;
+      setIsLoading(false);
     };
 
+    /**
+     * CRITICAL: `handleEnded` must use refs (not closures) to always advance
+     * from the correct current index — this is the fix for the stale closure bug.
+     */
     const handleEnded = () => {
-      // Automatic continuous progression to next song
-      next();
+      const pl = playlistRef.current;
+      const idx = currentIndexRef.current;
+      if (pl.length === 0) return;
+      const nextIdx = (idx + 1) % pl.length;
+      goToIndex(nextIdx, true);
     };
 
+    let skipErrorTimer: ReturnType<typeof setTimeout> | null = null;
     const handleError = () => {
-      console.warn('Audio playback error on current track');
+      // Only report error if audio actually has a source
+      if (!audio.src || audio.src === window.location.href) return;
+      console.warn('Audio playback error on current track:', audio.error?.message);
       setIsLoading(false);
       setIsPlaying(false);
+      isPlayingRef.current = false;
       setError('Unable to stream this track. Skipping...');
-      
-      // Auto-skip to next track after a brief moment
-      const timer = setTimeout(() => {
-        next();
-      }, 1500);
-      return () => clearTimeout(timer);
+
+      // Auto-skip after brief moment so the user sees the message
+      skipErrorTimer = setTimeout(() => {
+        setError(null);
+        const pl = playlistRef.current;
+        const idx = currentIndexRef.current;
+        if (pl.length > 0) {
+          const nextIdx = (idx + 1) % pl.length;
+          goToIndex(nextIdx, true);
+        }
+      }, 1800);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -86,33 +153,36 @@ export function useAudioPlayer() {
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      if (skipErrorTimer) clearTimeout(skipErrorTimer);
       audio.pause();
       audio.src = '';
     };
-  }, []);
+  }, [goToIndex]);
 
-  // Fetch tracks from API
+  // ─── Fetch tracks from API on mount ──────────────────────────────────────
   useEffect(() => {
     let isMounted = true;
+
     async function loadTracks() {
+      setIsTracksLoading(true);
       try {
         const res = await fetch('/api/tracks');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        
+
         if (!isMounted) return;
 
         let fetchedTracks: Track[] = data.tracks || [];
         setDataSource(data.source || 'demo');
 
-        // Check if user had a saved order from previous session
+        // Re-apply saved playlist order if available
         const savedOrderJson = localStorage.getItem(STORAGE_PLAYLIST_KEY);
         if (savedOrderJson) {
           try {
             const savedIds: string[] = JSON.parse(savedOrderJson);
-            const trackMap = new Map(fetchedTracks.map(t => [t.id, t]));
+            const trackMap = new Map(fetchedTracks.map((t) => [t.id, t]));
             const ordered: Track[] = [];
-            
-            // Add tracks according to saved order
+
             for (const id of savedIds) {
               if (trackMap.has(id)) {
                 ordered.push(trackMap.get(id)!);
@@ -120,7 +190,7 @@ export function useAudioPlayer() {
               }
             }
             // Append any newly discovered tracks not in saved list
-            trackMap.forEach(t => ordered.push(t));
+            trackMap.forEach((t) => ordered.push(t));
 
             if (ordered.length > 0) {
               fetchedTracks = ordered;
@@ -130,152 +200,157 @@ export function useAudioPlayer() {
           }
         }
 
+        playlistRef.current = fetchedTracks;
         setPlaylist(fetchedTracks);
-        if (fetchedTracks.length > 0) {
+
+        if (fetchedTracks.length > 0 && audioRef.current) {
+          currentIndexRef.current = 0;
           setCurrentIndex(0);
-          if (audioRef.current) {
-            audioRef.current.src = fetchedTracks[0].url;
-          }
+          // Pre-load first track metadata without autoplaying
+          audioRef.current.src = fetchedTracks[0].url;
+          audioRef.current.preload = 'metadata';
         }
       } catch (err) {
         console.error('Failed to load tracks:', err);
-        setError('Music catalog temporarily unavailable');
+        if (isMounted) {
+          setError('Music catalog temporarily unavailable.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsTracksLoading(false);
+        }
       }
     }
 
     loadTracks();
-
     return () => {
       isMounted = false;
     };
   }, []);
 
+  // ─── Derived current track ────────────────────────────────────────────────
   const currentTrack = playlist[currentIndex] || null;
 
-  // Safe play helper
-  const playTrack = useCallback(async (track: Track) => {
+  // ─── Play / Pause toggle ──────────────────────────────────────────────────
+  const togglePlay = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    const track = playlistRef.current[currentIndexRef.current];
+    if (!audio || !track) return;
 
-    try {
-      if (audio.src !== track.url) {
+    if (isPlayingRef.current) {
+      audio.pause();
+    } else {
+      if (!audio.src || audio.src === window.location.href) {
         audio.src = track.url;
         audio.load();
       }
       setIsLoading(true);
       setError(null);
-      
-      playPromiseRef.current = audio.play();
-      await playPromiseRef.current;
-      setIsPlaying(true);
-      setIsLoading(false);
-    } catch (e: any) {
-      // AbortError is normal when switching tracks rapidly
-      if (e.name !== 'AbortError') {
-        console.warn('Playback gesture required or stream failed:', e);
-        setIsPlaying(false);
+      const promise = audio.play();
+      if (promise !== undefined) {
+        promise.catch((e) => {
+          if (e.name !== 'AbortError') {
+            console.warn('Play failed:', e.message);
+            setIsPlaying(false);
+            setIsLoading(false);
+          }
+        });
       }
-      setIsLoading(false);
     }
   }, []);
 
-  // Play / Pause toggle
-  const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
+  // ─── Select track by index ────────────────────────────────────────────────
+  const selectTrack = useCallback(
+    (index: number, autoPlay: boolean = true) => {
+      goToIndex(index, autoPlay);
+    },
+    [goToIndex]
+  );
 
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      playTrack(currentTrack);
-    }
-  }, [isPlaying, currentTrack, playTrack]);
-
-  // Select track by index
-  const selectTrack = useCallback((index: number, autoPlay: boolean = true) => {
-    if (index < 0 || index >= playlist.length) return;
-    setCurrentIndex(index);
-    const target = playlist[index];
-    if (autoPlay) {
-      playTrack(target);
-    } else if (audioRef.current) {
-      audioRef.current.src = target.url;
-    }
-  }, [playlist, playTrack]);
-
-  // Next Track
+  // ─── Next track ───────────────────────────────────────────────────────────
   const next = useCallback(() => {
-    if (playlist.length === 0) return;
-    const nextIdx = (currentIndex + 1) % playlist.length;
-    selectTrack(nextIdx, true);
-  }, [playlist.length, currentIndex, selectTrack]);
+    const pl = playlistRef.current;
+    if (pl.length === 0) return;
+    const nextIdx = (currentIndexRef.current + 1) % pl.length;
+    goToIndex(nextIdx, true);
+  }, [goToIndex]);
 
-  // Previous Track (with 3-second smart seek rule)
+  // ─── Previous track (with 3-second smart restart) ────────────────────────
   const previous = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || playlist.length === 0) return;
+    const pl = playlistRef.current;
+    if (!audio || pl.length === 0) return;
 
-    // If song has played for more than 3 seconds, restart current track
     if (audio.currentTime > 3) {
+      // Restart current track
       audio.currentTime = 0;
       setCurrentTime(0);
-      if (!isPlaying) {
-        playTrack(playlist[currentIndex]);
+      if (!isPlayingRef.current) {
+        const promise = audio.play();
+        if (promise !== undefined) {
+          promise.catch((e) => {
+            if (e.name !== 'AbortError') console.warn('Play failed:', e.message);
+          });
+        }
       }
     } else {
-      // Move to previous track
-      const prevIdx = (currentIndex - 1 + playlist.length) % playlist.length;
-      selectTrack(prevIdx, true);
+      const prevIdx = (currentIndexRef.current - 1 + pl.length) % pl.length;
+      goToIndex(prevIdx, true);
     }
-  }, [playlist, currentIndex, isPlaying, selectTrack, playTrack]);
+  }, [goToIndex]);
 
-  // Seek to specified seconds
-  const seek = useCallback((seconds: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const clamped = Math.max(0, Math.min(seconds, duration));
-    audio.currentTime = clamped;
-    setCurrentTime(clamped);
-  }, [duration]);
+  // ─── Seek ────────────────────────────────────────────────────────────────
+  const seek = useCallback(
+    (seconds: number) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      const clamped = Math.max(0, Math.min(seconds, duration));
+      audio.currentTime = clamped;
+      setCurrentTime(clamped);
+    },
+    [duration]
+  );
 
-  // Reorder playlist (drag and drop)
+  // ─── Reorder playlist ────────────────────────────────────────────────────
   const reorderPlaylist = useCallback((newPlaylist: Track[]) => {
-    const active = currentTrack;
+    const activeid = playlistRef.current[currentIndexRef.current]?.id;
+    playlistRef.current = newPlaylist;
     setPlaylist(newPlaylist);
 
-    // Maintain correct currentIndex matching currently playing track
-    if (active) {
-      const newIdx = newPlaylist.findIndex(t => t.id === active.id);
+    // Keep currentIndex pointing to the same track
+    if (activeid) {
+      const newIdx = newPlaylist.findIndex((t) => t.id === activeid);
       if (newIdx !== -1) {
+        currentIndexRef.current = newIdx;
         setCurrentIndex(newIdx);
       }
     }
 
-    // Persist new ordering IDs in localStorage
+    // Persist order to localStorage
     try {
-      const ids = newPlaylist.map(t => t.id);
-      localStorage.setItem(STORAGE_PLAYLIST_KEY, JSON.stringify(ids));
+      localStorage.setItem(
+        STORAGE_PLAYLIST_KEY,
+        JSON.stringify(newPlaylist.map((t) => t.id))
+      );
     } catch (e) {
       console.warn('Failed to save playlist order:', e);
     }
-  }, [currentTrack]);
+  }, []);
 
+  // ─── Playlist open/close ─────────────────────────────────────────────────
   const togglePlaylist = useCallback(() => {
-    setIsPlaylistOpen(prev => !prev);
+    setIsPlaylistOpen((prev) => !prev);
   }, []);
 
   const closePlaylist = useCallback(() => {
     setIsPlaylistOpen(false);
   }, []);
 
-  // Global Keyboard Shortcuts
+  // ─── Global Keyboard Shortcuts ───────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is in an input or textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        return;
-      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
       switch (e.code) {
         case 'Space':
@@ -309,11 +384,11 @@ export function useAudioPlayer() {
     currentTime,
     duration,
     isLoading,
+    isTracksLoading,
     error,
     isPlaylistOpen,
     dataSource,
     togglePlay,
-    playTrack,
     selectTrack,
     next,
     previous,

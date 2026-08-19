@@ -6,6 +6,7 @@ interface MiniPlayerProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   isLoading: boolean;
+  isTracksLoading: boolean;
   currentTime: number;
   duration: number;
   isPlaylistOpen: boolean;
@@ -20,6 +21,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   currentTrack,
   isPlaying,
   isLoading,
+  isTracksLoading,
   currentTime,
   duration,
   isPlaylistOpen,
@@ -32,112 +34,119 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
 
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressBarRef.current || duration <= 0) return;
     const rect = progressBarRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickRatio = Math.max(0, Math.min(1, clickX / rect.width));
-    onSeek(clickRatio * duration);
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    onSeek(ratio * duration);
   };
+
+  // Central play button state
+  const showSpinner = isLoading || isTracksLoading;
+  const playDisabled = isTracksLoading || !currentTrack;
 
   return (
     <nav
       aria-label="Audio player controls"
-      className="fixed bottom-safe left-1/2 -translate-x-1/2 z-30 w-[calc(100vw-24px)] sm:w-[420px] md:w-[460px] select-none"
+      className="fixed bottom-safe left-1/2 -translate-x-1/2 z-30 w-[calc(100vw-24px)] sm:w-[440px] md:w-[480px] select-none animate-fadeIn"
     >
-      <div 
-        className="glass-player relative flex items-center justify-between px-3.5 py-2.5 rounded-full overflow-hidden transition-all duration-300 hover:border-white/25 group shadow-2xl"
-      >
-        {/* Subtle Micro-Progress Bar along bottom edge */}
+      <div className="glass-player relative flex items-center px-3 sm:px-4 py-2.5 rounded-full overflow-hidden group shadow-2xl">
+
+        {/* ── Thin progress bar along bottom edge ── */}
         <div
           ref={progressBarRef}
-          onClick={handleProgressBarClick}
-          className="absolute inset-x-0 bottom-0 h-[2.5px] bg-white/10 hover:h-[4px] cursor-pointer transition-all duration-150 group/progress"
+          onClick={handleProgressClick}
           role="progressbar"
           aria-valuenow={Math.round(progressPercent)}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label="Playback progress"
+          title={`${Math.round(progressPercent)}% played`}
+          className="absolute inset-x-0 bottom-0 h-[2px] bg-white/10 hover:h-[4px] cursor-pointer transition-all duration-200 group/bar"
         >
           <div
-            className="h-full bg-gradient-to-r from-white/70 to-white/95 rounded-r-full transition-all duration-100 ease-out group-hover/progress:brightness-125"
+            className="h-full bg-white/80 rounded-r-full transition-[width] duration-100 ease-linear"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
 
-        {/* Left Side: Playback Controls (Previous, Play/Pause, Next) */}
-        <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
-          {/* Previous Button */}
+        {/* ── Left: Prev / Play / Next ── */}
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          {/* Previous */}
           <button
             onClick={onPrevious}
-            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-neutral-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            disabled={playDisabled}
             aria-label="Previous song"
-            title="Previous (Left Arrow)"
+            title="Previous (←)"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:opacity-30 disabled:pointer-events-none"
           >
             <SkipBack className="w-4 h-4 fill-current" />
           </button>
 
-          {/* Central Play/Pause Button */}
+          {/* Play / Pause — slightly larger */}
           <button
             onClick={onTogglePlay}
-            disabled={!currentTrack}
-            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-white text-black hover:bg-neutral-100 hover:scale-105 active:scale-95 transition-all duration-200 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-50 disabled:pointer-events-none"
+            disabled={playDisabled}
             aria-label={isPlaying ? 'Pause' : 'Play'}
             title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-white text-black hover:bg-white/90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:pointer-events-none"
           >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-black" />
+            {showSpinner ? (
+              <Loader2 className="w-4 h-4 animate-spin text-black/70" />
             ) : isPlaying ? (
               <Pause className="w-4 h-4 fill-black stroke-black" />
             ) : (
-              <Play className="w-4 h-4 fill-black stroke-black translate-x-0.5" />
+              <Play className="w-4 h-4 fill-black stroke-black translate-x-[1px]" />
             )}
           </button>
 
-          {/* Next Button */}
+          {/* Next */}
           <button
             onClick={onNext}
-            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-neutral-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            disabled={playDisabled}
             aria-label="Next song"
-            title="Next (Right Arrow)"
+            title="Next (→)"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:opacity-30 disabled:pointer-events-none"
           >
             <SkipForward className="w-4 h-4 fill-current" />
           </button>
         </div>
 
-        {/* Center: Song Name & Playing Pulse */}
-        <div className="flex items-center min-w-0 flex-1 px-2.5 sm:px-3 text-left">
-          {/* Subtle Equalizer Animation when playing */}
-          {isPlaying && (
-            <div className="flex items-end gap-[2px] h-3 mr-2 shrink-0 opacity-80" aria-hidden="true">
-              <span className="w-[2px] bg-white rounded-full bar-1" />
-              <span className="w-[2px] bg-white rounded-full bar-2" />
-              <span className="w-[2px] bg-white rounded-full bar-3" />
-            </div>
+        {/* ── Center: Song info ── */}
+        <div className="flex items-center min-w-0 flex-1 px-2 sm:px-3">
+          {/* Animated equalizer bars when playing */}
+          {isPlaying && !showSpinner && (
+            <span className="flex items-end gap-[2px] h-3 mr-2 shrink-0" aria-hidden="true">
+              <span className="w-[2px] bg-white/80 rounded-full bar-1" />
+              <span className="w-[2px] bg-white/80 rounded-full bar-2" />
+              <span className="w-[2px] bg-white/80 rounded-full bar-3" />
+            </span>
           )}
 
-          <div className="min-w-0 flex-1">
-            <p 
-              className="text-xs sm:text-sm font-medium tracking-wide text-neutral-100 truncate drop-shadow-sm"
-              title={currentTrack?.name || 'No song selected'}
-            >
-              {currentTrack ? currentTrack.name : 'Select a track'}
-            </p>
-          </div>
+          <p
+            className="text-xs sm:text-[13px] font-medium tracking-wide text-white/90 truncate leading-none"
+            title={currentTrack?.name ?? 'No track selected'}
+          >
+            {isTracksLoading
+              ? 'Loading…'
+              : currentTrack
+              ? currentTrack.name
+              : 'Select a track'}
+          </p>
         </div>
 
-        {/* Right Side: Playlist Toggle Button */}
-        <div className="shrink-0 pl-1">
+        {/* ── Right: Playlist toggle ── */}
+        <div className="shrink-0">
           <button
             onClick={onTogglePlaylist}
-            className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95 ${
-              isPlaylistOpen 
-                ? 'bg-white/20 text-white shadow-inner' 
-                : 'text-neutral-300 hover:text-white hover:bg-white/10'
-            }`}
             aria-label={isPlaylistOpen ? 'Close playlist' : 'Open playlist'}
             aria-expanded={isPlaylistOpen}
             title="Playlist (Esc to close)"
+            className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-90 ${
+              isPlaylistOpen
+                ? 'bg-white/20 text-white'
+                : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
           >
             <ListMusic className="w-4 h-4" />
           </button>

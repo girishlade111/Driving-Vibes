@@ -12,40 +12,47 @@ export const Background: React.FC<BackgroundProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 w-full h-full min-h-[100dvh] overflow-hidden pointer-events-none select-none z-0 bg-black"
       aria-hidden="true"
     >
-      {/* Responsive Picture Element */}
-      <picture className="w-full h-full">
-        {/* Mobile portrait & narrow screens (under 768px) */}
-        <source
-          media="(max-width: 767px)"
-          srcSet={mobileSrc}
-          type="image/png"
-        />
-        {/* Desktop / tablet landscape (768px and wider) */}
-        <source
-          media="(min-width: 768px)"
-          srcSet={desktopSrc}
-          type="image/png"
-        />
-        {/* Fallback image */}
+      {/*
+       * <picture> with <source media> ensures the browser only downloads
+       * the image that matches the current viewport — never both.
+       *
+       * No `type` attribute on <source> so it works with .jpg, .png, .webp, etc.
+       * without requiring changes here when the file format changes.
+       */}
+      <picture className="block w-full h-full">
+        {/* Mobile portrait screens — loads ONLY mobile-background */}
+        <source media="(max-width: 767px)" srcSet={mobileSrc} />
+        {/* Desktop, laptops, landscape tablets — loads ONLY desktop-background */}
+        <source media="(min-width: 768px)" srcSet={desktopSrc} />
+        {/* Fallback <img> — also the element whose `onLoad` we listen to */}
         <img
           src={desktopSrc}
-          alt="Cinematic background atmosphere"
+          alt=""
+          role="presentation"
           className={`w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-700 ease-out ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           onLoad={() => setIsLoaded(true)}
           decoding="async"
           loading="eager"
+          fetchPriority="high"
         />
       </picture>
 
-      {/* Subtle bottom gradient to ensure player readability while keeping 95% of background pure */}
-      <div 
-        className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 via-black/15 to-transparent pointer-events-none"
+      {/*
+       * Minimal bottom gradient — only enough to guarantee player readability.
+       * Keeps 95%+ of the background image visually pure.
+       */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-36 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(to top, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.12) 60%, transparent 100%)',
+        }}
       />
     </div>
   );
