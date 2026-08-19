@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/background/background.tsx","./src/components/miniplayer/miniplayer.tsx","./src/components/playlist/playlistpanel.tsx","./src/hooks/useaudioplayer.ts","./src/types/music.ts"],"version":"5.9.3"}
