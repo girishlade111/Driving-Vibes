@@ -1,20 +1,23 @@
 import React, { useState, useCallback } from 'react';
 import { Background } from './components/Background/Background';
 import { SettingsPanel } from './components/Background/SettingsPanel';
+import { MusicWave } from './components/MiniPlayer/MusicWave';
 import { MiniPlayer } from './components/MiniPlayer/MiniPlayer';
 import { PlaylistPanel } from './components/Playlist/PlaylistPanel';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { AlertCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // ── Background settings state ─────────────────────────────────────────
-  const [isAnimated, setIsAnimated] = useState<boolean>(false);
-  const [blur, setBlur] = useState<number>(0);
+  // ── Background / visual settings ─────────────────────────────────────
+  const [isAnimated, setIsAnimated]   = useState<boolean>(false);
+  const [blur, setBlur]               = useState<number>(0);
+  const [showWave, setShowWave]       = useState<boolean>(false);
 
-  const toggleAnimation = useCallback(() => setIsAnimated((prev) => !prev), []);
-  const handleBlurChange = useCallback((value: number) => setBlur(value), []);
+  const toggleAnimation = useCallback(() => setIsAnimated((p) => !p), []);
+  const handleBlurChange = useCallback((v: number) => setBlur(v), []);
+  const toggleWave = useCallback(() => setShowWave((p) => !p), []);
 
-  // ── Audio player state ────────────────────────────────────────────────
+  // ── Audio player ──────────────────────────────────────────────────────
   const {
     playlist,
     currentTrack,
@@ -38,7 +41,7 @@ export const App: React.FC = () => {
   return (
     <main className="relative w-full h-full min-h-[100dvh] overflow-hidden select-none">
 
-      {/* Layer 0 — Cinematic background (static PNG + animated GIF + blur overlay) */}
+      {/* z-0  — Background (PNG / GIF + blur overlay) */}
       <Background
         desktopSrc="/backgrounds/desktop-background.png"
         mobileSrc="/backgrounds/mobile-background.png"
@@ -48,15 +51,20 @@ export const App: React.FC = () => {
         blur={blur}
       />
 
-      {/* Layer 35 — Settings button + panel (top-right) */}
+      {/* z-35 — Settings button + panel */}
       <SettingsPanel
         isAnimated={isAnimated}
         blur={blur}
+        showWave={showWave}
         onToggleAnimated={toggleAnimation}
         onBlurChange={handleBlurChange}
+        onToggleWave={toggleWave}
       />
 
-      {/* Layer 40 — Error toast */}
+      {/* z-29 — Music wave visualizer (above background, below player) */}
+      <MusicWave isVisible={showWave} isPlaying={isPlaying} />
+
+      {/* z-40 — Error toast */}
       {error && (
         <aside
           aria-live="polite"
@@ -69,7 +77,7 @@ export const App: React.FC = () => {
         </aside>
       )}
 
-      {/* Layer 25 — Expanded playlist panel */}
+      {/* z-25 — Playlist panel */}
       <PlaylistPanel
         isOpen={isPlaylistOpen}
         playlist={playlist}
@@ -84,7 +92,7 @@ export const App: React.FC = () => {
         onReorder={reorderPlaylist}
       />
 
-      {/* Layer 30 — Mini player (centered) */}
+      {/* z-30 — Mini player (centered) */}
       <MiniPlayer
         currentTrack={currentTrack}
         isPlaying={isPlaying}
