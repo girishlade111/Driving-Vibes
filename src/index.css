@@ -148,6 +148,17 @@
   animation: slideUp var(--anim-normal, 250ms) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ── Music Wave bar animation ────────────────────────────────────────────── */
+/*
+ * Each bar sets --min-h and --max-h as inline CSS custom properties.
+ * The keyframe animates between those values, so every bar has its own
+ * unique height range without needing separate @keyframes per bar.
+ */
+@keyframes waveBar {
+  from { height: var(--min-h, 4px);  }
+  to   { height: var(--max-h, 48px); }
+}
+
 /* ── Touch Action Utilities ─────────────────────────────────────────────── */
 /* Prevents scroll interference during drag on mobile */
 .touch-none {
