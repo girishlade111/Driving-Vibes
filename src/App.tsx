@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Background } from './components/Background/Background';
+import { AnimationToggle } from './components/Background/AnimationToggle';
 import { MiniPlayer } from './components/MiniPlayer/MiniPlayer';
 import { PlaylistPanel } from './components/Playlist/PlaylistPanel';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { AlertCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
+  // ── Animation toggle state ────────────────────────────────────────────
+  const [isAnimated, setIsAnimated] = useState<boolean>(false);
+  const toggleAnimation = useCallback(() => setIsAnimated((prev) => !prev), []);
+
+  // ── Audio player state ────────────────────────────────────────────────
   const {
     playlist,
     currentTrack,
@@ -28,18 +34,24 @@ export const App: React.FC = () => {
 
   return (
     <main className="relative w-full h-full min-h-[100dvh] overflow-hidden select-none">
-      {/* Layer 0 — Full-screen Cinematic Responsive Background */}
+      {/* Layer 0 — Full-screen Cinematic Responsive Background (static + animated) */}
       <Background
         desktopSrc="/backgrounds/desktop-background.png"
         mobileSrc="/backgrounds/mobile-background.png"
+        desktopGif="/backgrounds/desktop-background.gif"
+        mobileGif="/backgrounds/mobile-background.gif"
+        isAnimated={isAnimated}
       />
 
-      {/* Layer 10 — Transient Error / Status Toast */}
+      {/* Layer 30 — Animated background toggle (top-right, minimal icon button) */}
+      <AnimationToggle isAnimated={isAnimated} onToggle={toggleAnimation} />
+
+      {/* Layer 40 — Transient Error Toast */}
       {error && (
         <aside
           aria-live="polite"
           role="alert"
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full glass-player border-red-500/30 text-red-200 text-xs flex items-center space-x-2 animate-fadeIn shadow-lg"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full glass-player border-red-500/30 text-red-200 text-xs flex items-center space-x-2 animate-fadeIn shadow-lg"
           style={{ background: 'rgba(30, 5, 5, 0.55)' }}
         >
           <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
@@ -57,10 +69,7 @@ export const App: React.FC = () => {
         onClose={closePlaylist}
         onSelectTrack={(index) => {
           selectTrack(index, true);
-          // Auto-close on mobile to keep UI minimal
-          if (window.innerWidth < 640) {
-            closePlaylist();
-          }
+          if (window.innerWidth < 640) closePlaylist();
         }}
         onReorder={reorderPlaylist}
       />
