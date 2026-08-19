@@ -11,7 +11,7 @@ export const App: React.FC = () => {
   // ── Background / visual settings ─────────────────────────────────────
   const [isAnimated, setIsAnimated]   = useState<boolean>(false);
   const [blur, setBlur]               = useState<number>(0);
-  const [showWave, setShowWave]       = useState<boolean>(false);
+  const [showWave, setShowWave]       = useState<boolean>(true);
 
   const toggleAnimation = useCallback(() => setIsAnimated((p) => !p), []);
   const handleBlurChange = useCallback((v: number) => setBlur(v), []);
