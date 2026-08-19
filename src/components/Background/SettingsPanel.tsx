@@ -1,24 +1,62 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, Sparkles, ImageIcon } from 'lucide-react';
+import { Settings, Sparkles, ImageIcon, AudioLines } from 'lucide-react';
 
 interface SettingsPanelProps {
   isAnimated: boolean;
   blur: number;
+  showWave: boolean;
   onToggleAnimated: () => void;
   onBlurChange: (value: number) => void;
+  onToggleWave: () => void;
 }
+
+/** Reusable inline toggle pill */
+const ToggleRow: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  ariaLabel: string;
+  onClick: () => void;
+}> = ({ icon, label, active, ariaLabel, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center justify-between group"
+    aria-label={ariaLabel}
+    aria-pressed={active}
+  >
+    <span className="flex items-center gap-2 text-[13px] text-white/65 group-hover:text-white/85 transition-colors">
+      {icon}
+      {label}
+    </span>
+    {/* Toggle pill */}
+    <div
+      className={`relative w-9 h-5 rounded-full transition-all duration-300 ${
+        active ? 'bg-white/30' : 'bg-white/10'
+      }`}
+      aria-hidden="true"
+    >
+      <div
+        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${
+          active ? 'left-[18px]' : 'left-0.5'
+        }`}
+      />
+    </div>
+  </button>
+);
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isAnimated,
   blur,
+  showWave,
   onToggleAnimated,
   onBlurChange,
+  onToggleWave,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Close when clicking outside
+  // Close on outside click or Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleClick = (e: MouseEvent) => {
@@ -43,7 +81,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <>
-      {/* ── Settings trigger button ── */}
+      {/* ── Gear trigger button ──────────────────────────────────────────── */}
       <button
         ref={buttonRef}
         onClick={() => setIsOpen((p) => !p)}
@@ -56,9 +94,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           'transition-all duration-300 ease-out',
           'hover:scale-105 active:scale-95',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
-          isOpen
-            ? 'text-white bg-white/15'
-            : 'text-white/45 hover:text-white/75',
+          isOpen ? 'text-white bg-white/15' : 'text-white/45 hover:text-white/75',
         ].join(' ')}
         style={{ zIndex: 35 }}
       >
@@ -71,58 +107,39 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
       </button>
 
-      {/* ── Settings panel ── */}
+      {/* ── Settings panel ──────────────────────────────────────────────── */}
       {isOpen && (
         <div
           ref={panelRef}
           role="dialog"
-          aria-label="Background settings"
+          aria-label="App settings"
           className="fixed top-[60px] right-4 w-56 glass-panel rounded-2xl shadow-2xl overflow-hidden animate-fadeIn"
           style={{ zIndex: 34 }}
         >
           <div className="px-4 py-4 space-y-4">
 
-            {/* ── Section: Background type ── */}
+            {/* ── Background type ── */}
             <div>
               <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35 mb-2.5">
                 Background
               </p>
-
-              {/* Toggle row */}
-              <button
+              <ToggleRow
+                icon={
+                  isAnimated
+                    ? <Sparkles className="w-3.5 h-3.5 text-white/55" />
+                    : <ImageIcon className="w-3.5 h-3.5 text-white/35" />
+                }
+                label={isAnimated ? 'Animated' : 'Static'}
+                active={isAnimated}
+                ariaLabel={isAnimated ? 'Switch to static background' : 'Switch to animated background'}
                 onClick={onToggleAnimated}
-                className="w-full flex items-center justify-between group"
-                aria-label={isAnimated ? 'Switch to static background' : 'Switch to animated background'}
-              >
-                <span className="flex items-center gap-2 text-[13px] text-white/70 group-hover:text-white/90 transition-colors">
-                  {isAnimated ? (
-                    <Sparkles className="w-3.5 h-3.5 text-white/60" />
-                  ) : (
-                    <ImageIcon className="w-3.5 h-3.5 text-white/40" />
-                  )}
-                  {isAnimated ? 'Animated' : 'Static'}
-                </span>
-
-                {/* Toggle pill */}
-                <div
-                  className={`relative w-9 h-5 rounded-full transition-all duration-300 ${
-                    isAnimated ? 'bg-white/30' : 'bg-white/10'
-                  }`}
-                  aria-hidden="true"
-                >
-                  <div
-                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${
-                      isAnimated ? 'left-[18px]' : 'left-0.5'
-                    }`}
-                  />
-                </div>
-              </button>
+              />
             </div>
 
             {/* Divider */}
             <div className="h-px bg-white/8" />
 
-            {/* ── Section: Blur ── */}
+            {/* ── Blur slider ── */}
             <div>
               <div className="flex items-center justify-between mb-2.5">
                 <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35">
@@ -132,7 +149,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   {blur}px
                 </span>
               </div>
-
               <input
                 type="range"
                 min={0}
@@ -150,6 +166,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <span className="text-[9px] text-white/20">None</span>
                 <span className="text-[9px] text-white/20">Max</span>
               </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-white/8" />
+
+            {/* ── Music Wave ── */}
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35 mb-2.5">
+                Visualizer
+              </p>
+              <ToggleRow
+                icon={<AudioLines className="w-3.5 h-3.5 text-white/45" />}
+                label="Music Wave"
+                active={showWave}
+                ariaLabel={showWave ? 'Hide music wave' : 'Show music wave'}
+                onClick={onToggleWave}
+              />
             </div>
 
           </div>
