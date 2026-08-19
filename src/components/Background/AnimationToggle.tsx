@@ -15,40 +15,51 @@ export const AnimationToggle: React.FC<AnimationToggleProps> = ({
       onClick={onToggle}
       aria-label={isAnimated ? 'Switch to static background' : 'Switch to animated background'}
       title={isAnimated ? 'Static background' : 'Animated background'}
+      style={{ zIndex: 30 }}
       className={[
-        // Position — top-right, above safe area
-        'fixed top-4 right-4 z-30',
-        // Size — compact 36×36 pill
-        'w-9 h-9 flex items-center justify-center rounded-full',
-        // Glassmorphism surface matching the player aesthetic
+        // Fixed position — top-right corner
+        'fixed top-4 right-4',
+        // Size
+        'w-9 h-9 rounded-full',
+        // Glassmorphism surface
         'glass-player',
-        // Interactive states
+        // Interactions
         'transition-all duration-300 ease-out',
         'hover:scale-105 active:scale-95',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
-        // Active vs inactive colour + living glow when animated
+        // Colour state
         isAnimated
-          ? 'text-white/90 bg-white/15 toggle-active-glow'
-          : 'text-white/40 hover:text-white/70',
+          ? 'text-white/90 toggle-active-glow'
+          : 'text-white/45 hover:text-white/75',
       ].join(' ')}
     >
-      {/* Icon morphs between Sparkles (animated) and ImageIcon (static) */}
-      <span
-        className={`absolute transition-all duration-300 ${
-          isAnimated ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-75 rotate-12'
-        }`}
-        aria-hidden="true"
-      >
-        <Sparkles className="w-[15px] h-[15px]" />
-      </span>
-      <span
-        className={`absolute transition-all duration-300 ${
-          isAnimated ? 'opacity-0 scale-75 -rotate-12' : 'opacity-100 scale-100 rotate-0'
-        }`}
-        aria-hidden="true"
-      >
-        <ImageIcon className="w-[15px] h-[15px]" />
-      </span>
+      {/*
+       * IMPORTANT: the icons must be inside a `relative` positioned wrapper.
+       * The button itself is `position: fixed` which does NOT create a containing
+       * block for `absolute` children — the wrapper div does.
+       */}
+      <div className="relative w-full h-full flex items-center justify-center">
+
+        {/* Sparkles — visible when animated ON */}
+        <Sparkles
+          className="absolute w-[15px] h-[15px] transition-all duration-300"
+          style={{
+            opacity: isAnimated ? 1 : 0,
+            transform: isAnimated ? 'scale(1) rotate(0deg)' : 'scale(0.65) rotate(15deg)',
+          }}
+          aria-hidden="true"
+        />
+
+        {/* ImageIcon — visible when animated OFF */}
+        <ImageIcon
+          className="absolute w-[15px] h-[15px] transition-all duration-300"
+          style={{
+            opacity: isAnimated ? 0 : 1,
+            transform: isAnimated ? 'scale(0.65) rotate(-15deg)' : 'scale(1) rotate(0deg)',
+          }}
+          aria-hidden="true"
+        />
+      </div>
     </button>
   );
 };
