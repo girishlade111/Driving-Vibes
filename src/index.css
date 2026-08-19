@@ -168,3 +168,42 @@
   animation: toggleGlow 2.4s ease-in-out infinite;
 }
 
+/* ── Blur slider — custom range input styling ───────────────────────────── */
+.blur-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  border: none;
+  height: 3px;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+/* Thumb — Chrome / Safari */
+.blur-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.90);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.blur-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Thumb — Firefox */
+.blur-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.90);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
