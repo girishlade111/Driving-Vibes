@@ -117,8 +117,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         tabIndex={-1}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        className="fixed z-25 inset-x-3 bottom-[80px] sm:bottom-[90px] sm:left-1/2 sm:-translate-x-1/2 sm:inset-x-auto sm:w-[440px] md:w-[480px] max-h-[68vh] flex flex-col glass-panel rounded-2xl shadow-2xl overflow-hidden animate-slideUp focus:outline-none"
-        style={{ zIndex: 25 }}
+        className="fixed inset-x-3 sm:left-1/2 sm:-translate-x-1/2 sm:inset-x-auto sm:w-[440px] md:w-[480px] max-h-[44vh] flex flex-col glass-panel rounded-2xl shadow-2xl overflow-hidden animate-slideUp focus:outline-none"
+        style={{ zIndex: 25, bottom: 'calc(50vh + 34px)' }}
       >
         {/* Mobile drag handle */}
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0" aria-hidden="true">
