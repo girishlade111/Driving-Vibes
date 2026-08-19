@@ -48,7 +48,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   return (
     <nav
       aria-label="Audio player controls"
-      className="fixed bottom-safe left-1/2 -translate-x-1/2 z-30 w-[calc(100vw-24px)] sm:w-[440px] md:w-[480px] select-none animate-fadeIn"
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100vw-24px)] sm:w-[440px] md:w-[480px] select-none animate-fadeIn"
     >
       <div className="glass-player relative flex items-center px-3 sm:px-4 py-2.5 rounded-full overflow-hidden group shadow-2xl">
 
