@@ -108,6 +108,17 @@ export const App: React.FC = () => {
         onSeek={seek}
       />
 
+      {/* Backlink — bottom-left, minimal */}
+      <a
+        href="https://ladestack.in"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-safe left-4 z-30 text-[10px] tracking-wide text-white/30 hover:text-white/60 transition-colors duration-300 select-none"
+        style={{ fontFamily: 'Outfit, Inter, sans-serif', letterSpacing: '0.06em' }}
+      >
+        ladestack.in
+      </a>
+
     </main>
   );
 };
