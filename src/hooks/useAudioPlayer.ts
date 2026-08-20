@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Track, DEFAULT_TRACKS } from '../types/music';
+import { Track } from '../types/music';
 
 const STORAGE_PLAYLIST_KEY = 'driving_vibes_custom_order';
 const STORAGE_VOLUME_KEY   = 'driving_vibes_volume';
@@ -294,10 +294,9 @@ export function useAudioPlayer(
           // Backend may be offline or in dev standalone mode
         }
 
-        // If no tracks from R2, load curated high-quality default driving playlist
+        // If no tracks from R2 API, keep playlist empty (no demo fallback)
         if (fetchedTracks.length === 0) {
-          fetchedTracks = [...DEFAULT_TRACKS];
-          setDataSource('built-in');
+          setDataSource('error');
         }
 
         if (!isMounted) return;
@@ -345,16 +344,7 @@ export function useAudioPlayer(
         }
       } catch (err) {
         console.error('Failed to load tracks:', err);
-        if (isMounted) {
-          // Graceful fallback to default tracks
-          playlistRef.current = DEFAULT_TRACKS;
-          setPlaylist(DEFAULT_TRACKS);
-          if (DEFAULT_TRACKS.length > 0 && audioRef.current) {
-            currentIndexRef.current = 0;
-            setCurrentIndex(0);
-            audioRef.current.src = DEFAULT_TRACKS[0].url;
-          }
-        }
+        // No fallback — keep playlist empty if R2 is unavailable
       } finally {
         if (isMounted) {
           setIsTracksLoading(false);
