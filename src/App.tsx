@@ -231,7 +231,15 @@ export const App: React.FC = () => {
   const ambient = useAmbientMixer();
   const eq = useAudioEqualizer(audioRef);
   const dj = useAiDjHost();
-  const trip = useVirtualTrip();
+  const trip = useVirtualTrip({
+    currentTrack,
+    isPlaying,
+    currentTime,
+    playlist,
+    onSelectTrack: handleSelectTrack,
+    onTogglePlay: togglePlay,
+    onSeek: seek,
+  });
 
   // Announce track when changed if AI DJ enabled
   const announceTrackFn = dj.announceTrack;
@@ -585,15 +593,7 @@ export const App: React.FC = () => {
       />
 
       {/* 5. Virtual Road Trip (Listen Together) */}
-      <VirtualTripModal
-        isOpen={trip.isTripModalOpen}
-        onClose={trip.closeTripModal}
-        tripId={trip.tripId}
-        travelerCount={trip.travelerCount}
-        copiedToast={trip.copiedToast}
-        onCopyTripLink={trip.copyTripLink}
-        onGenerateNewRoom={trip.generateNewRoom}
-      />
+      <VirtualTripModal tripState={trip} />
 
       {/* 6. Postcard & Wallpaper Generator */}
       <PostcardModal
