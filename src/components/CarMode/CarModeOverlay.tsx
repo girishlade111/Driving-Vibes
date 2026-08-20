@@ -1,37 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic, MicOff,
-  X, Shuffle, Repeat, Repeat1, Gauge, Clock, Navigation, Zap,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Mic,
+  MicOff,
+  X,
+  Shuffle,
+  Repeat,
+  Repeat1,
+  Clock,
+  Zap,
+  Maximize,
+  Minimize,
+  FlipHorizontal,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
-import { Track } from '../../types/music';
-import { RepeatMode } from '../../hooks/useAudioPlayer';
-
-interface CarModeOverlayProps {
-  isOpen: boolean;
-  onClose: () => void;
-  currentTrack: Track | null;
-  isPlaying: boolean;
-  isLoading: boolean;
-  currentTime: number;
-  duration: number;
-  isShuffle: boolean;
-  repeatMode: RepeatMode;
-  volume: number;
-  isMuted: boolean;
-  onTogglePlay: () => void;
-  onPrevious: () => void;
-  onNext: () => void;
-  onToggleShuffle: () => void;
-  onCycleRepeat: () => void;
-  onSetVolume: (v: number) => void;
-  onToggleMute: () => void;
-  onSeek: (seconds: number) => void;
-  // Voice Command Props
-  isVoiceListening: boolean;
-  isVoiceSupported: boolean;
-  lastVoiceCommand: string | null;
-  onToggleVoice: () => void;
-}
+import { CarModeOverlayProps, HUD_THEMES, HudThemeId } from './carModeTypes';
+import { useGpsSpeedometer, SpeedUnit } from '../../hooks/useGpsSpeedometer';
+import { SpeedometerGauge } from './SpeedometerGauge';
+import { GpsTelemetryPanel } from './GpsTelemetryPanel';
+import { TachometerBar } from './TachometerBar';
 
 export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
   isOpen,
@@ -63,16 +56,24 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
   const [dateStr, setDateStr] = useState('');
   const [tripSeconds, setTripSeconds] = useState(0);
 
-  // ── Simulated Speedometer ──
-  const [speed, setSpeed] = useState(68);
-  const [unit, setUnit] = useState<'km/h' | 'mph'>('km/h');
+  // ── HUD Preferences & State ──
+  const [themeId, setThemeId] = useState<HudThemeId>('cyber_neon');
+  const [unit, setUnit] = useState<SpeedUnit>('km/h');
+  const [isHudMirrored, setIsHudMirrored] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [gestureFeedback, setGestureFeedback] = useState<string | null>(null);
+  const [showThemeSelector, setShowThemeSelector] = useState<boolean>(false);
+
+  // ── Real GPS Speedometer Hook (100% Real Geolocation Data) ──
+  const telemetry = useGpsSpeedometer(unit, isOpen);
 
   // ── Touch / Swipe Gesture Tracking ──
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const lastTapRef = useRef<number>(0);
   const gestureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentTheme = HUD_THEMES.find((t) => t.id === themeId) ?? HUD_THEMES[0];
 
   // Update clock every second
   useEffect(() => {
@@ -105,36 +106,26 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
     return () => clearInterval(timer);
   }, [isOpen]);
 
-  // Subtle natural speed oscillation when driving / playing
-  useEffect(() => {
-    if (!isOpen) return;
-    const interval = setInterval(() => {
-      if (isPlaying) {
-        setSpeed((prev) => {
-          const delta = (Math.random() - 0.48) * 3;
-          const target = unit === 'km/h' ? 82 : 52;
-          return Math.round(Math.max(target - 15, Math.min(target + 18, prev + delta)));
-        });
-      } else {
-        setSpeed(0);
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [isOpen, isPlaying, unit]);
-
-  // Format Trip Time
-  const formatTripTime = (totalSec: number) => {
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
-  };
-
+  // Show Gesture Toast
   const showGestureToast = (msg: string) => {
     setGestureFeedback(msg);
     if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
     gestureTimerRef.current = setTimeout(() => {
       setGestureFeedback(null);
-    }, 1200);
+    }, 1500);
+  };
+
+  // Fullscreen toggle handler
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+        setIsFullscreen(false);
+      }
+    }
   };
 
   // ── Handle Swipe Gestures ──
@@ -200,50 +191,118 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-between bg-black/85 backdrop-blur-2xl text-white select-none animate-fadeIn overflow-hidden"
+      className={`fixed inset-0 z-50 flex flex-col justify-between text-white select-none animate-fadeIn overflow-hidden transition-transform duration-300 ${
+        isHudMirrored ? 'scale-x-[-1]' : ''
+      }`}
+      style={{ background: currentTheme.bgGradient }}
       role="dialog"
       aria-modal="true"
-      aria-label="Car Driving Dashboard"
+      aria-label="Car Driving Dashboard HUD"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleTouchStart}
       onMouseUp={handleTouchEnd}
       onClick={handleSurfaceClick}
     >
-      {/* ── Top Bar: HUD Info & Exit Button ── */}
-      <header className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-white/[0.02]">
-        {/* Digital Clock & Date */}
-        <div className="flex items-center gap-4">
+      {/* ── Top Bar: HUD Info, Theme Switcher & Actions ── */}
+      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10 bg-black/40 backdrop-blur-xl shrink-0 z-20">
+        {/* Left: Clock, Date & Theme Tag */}
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-white/90">
-            <Clock className="w-5 h-5 text-amber-400" />
-            <span className="text-xl font-bold font-mono tracking-wider">{timeStr}</span>
+            <Clock className="w-5 h-5" style={{ color: currentTheme.primaryColor }} />
+            <span className="text-lg sm:text-xl font-bold font-mono tracking-wider">{timeStr}</span>
           </div>
-          <span className="text-sm text-white/40 hidden sm:inline">•</span>
-          <span className="text-sm text-white/60 hidden sm:inline">{dateStr}</span>
+          <span className="text-sm text-white/30 hidden sm:inline">•</span>
+          <span className="text-xs text-white/60 hidden sm:inline">{dateStr}</span>
+
+          {/* Theme Selector Toggle */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowThemeSelector((p) => !p);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-mono text-white/80 transition-colors"
+              title="Switch HUD Theme"
+            >
+              <span>{currentTheme.emoji}</span>
+              <span className="hidden md:inline">{currentTheme.name}</span>
+              <Layers className="w-3 h-3 text-white/40" />
+            </button>
+
+            {/* Theme Dropdown */}
+            {showThemeSelector && (
+              <div className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-black/90 border border-white/20 p-1.5 shadow-2xl backdrop-blur-xl z-50 space-y-1">
+                {HUD_THEMES.map((thm) => (
+                  <button
+                    key={thm.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setThemeId(thm.id);
+                      setShowThemeSelector(false);
+                      showGestureToast(`Theme: ${thm.name}`);
+                    }}
+                    className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs transition-all ${
+                      themeId === thm.id
+                        ? 'bg-white/15 text-white font-bold'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span>{thm.emoji}</span>
+                    <span className="flex-1 truncate">{thm.name}</span>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: thm.primaryColor }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Center: Trip Duration & Speed Badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/70">
-            <Navigation className="w-3.5 h-3.5 text-sky-400" />
-            <span>Trip: {formatTripTime(tripSeconds)}</span>
-          </div>
+        {/* Center: GPS Status Pill */}
+        <div className="hidden sm:flex items-center gap-2">
+          {telemetry.isDemoMode && (
+            <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/40 text-[10px] font-mono uppercase tracking-wider animate-pulse">
+              Demo Mode Active
+            </span>
+          )}
+        </div>
 
+        {/* Right: HUD Mirror, Voice Mic, Fullscreen & Exit Button */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Windshield Reflection Flip */}
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setUnit((p) => (p === 'km/h' ? 'mph' : 'km/h'));
+              setIsHudMirrored((p) => !p);
+              showGestureToast(isHudMirrored ? 'HUD Mirror Disabled' : '🪞 Windshield HUD Mode Active');
             }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-amber-300 transition-colors"
+            aria-label="Toggle Windshield Reflection"
+            title="Windshield HUD Mode (Inverts display for night dashboard projection)"
+            className={`p-2 rounded-xl border transition-all ${
+              isHudMirrored
+                ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/15 hover:text-white'
+            }`}
           >
-            <Gauge className="w-3.5 h-3.5" />
-            <span className="font-bold">{speed}</span>
-            <span className="text-[10px] text-white/50">{unit}</span>
+            <FlipHorizontal className="w-4 h-4" />
           </button>
-        </div>
 
-        {/* Right: Voice Mic & Exit Button */}
-        <div className="flex items-center gap-3">
+          {/* Fullscreen Toggle */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleFullscreen();
+            }}
+            aria-label="Toggle Fullscreen"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-colors hidden sm:flex"
+            title="Toggle Fullscreen Dashboard"
+          >
+            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+          </button>
+
           {/* Voice Command Mic */}
           {isVoiceSupported && (
             <button
@@ -253,15 +312,15 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
               }}
               aria-label="Toggle Voice Commands"
               title="Voice Commands (Say: 'Next', 'Pause', 'Play', 'Mute')"
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border transition-all duration-300 ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all duration-300 ${
                 isVoiceListening
                   ? 'bg-red-500/20 border-red-400/50 text-red-300 animate-pulse shadow-lg shadow-red-500/20'
                   : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/15 hover:text-white'
               }`}
             >
-              {isVoiceListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              {isVoiceListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
               <span className="text-xs font-medium hidden md:inline">
-                {isVoiceListening ? 'Listening...' : 'Voice Mic'}
+                {isVoiceListening ? 'Listening…' : 'Voice'}
               </span>
             </button>
           )}
@@ -273,58 +332,63 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
               onClose();
             }}
             aria-label="Exit Car Mode"
-            className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 transition-all active:scale-95"
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 transition-all active:scale-95"
+            title="Exit Car HUD Mode (Escape)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </header>
 
       {/* ── Gesture / Voice Feedback Toast ── */}
       {(gestureFeedback || lastVoiceCommand) && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-2.5 rounded-full glass-player border border-amber-400/30 text-amber-200 text-sm font-semibold flex items-center gap-2 shadow-2xl animate-fadeIn">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-2 rounded-full bg-black/90 border border-amber-400/50 text-amber-200 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-2xl animate-fadeIn backdrop-blur-xl">
           <Zap className="w-4 h-4 text-amber-400 animate-bounce" />
           <span>{gestureFeedback || `Voice: ${lastVoiceCommand}`}</span>
         </div>
       )}
 
-      {/* ── Center Area: Large Track Display & Speedometer HUD ── */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center max-w-4xl mx-auto w-full space-y-6">
+      {/* ── Center Area: Automotive Speedometer & Cluster HUD ── */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-2 text-center max-w-4xl mx-auto w-full space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar z-10">
+        {/* Speedometer Instrument Cluster */}
+        <SpeedometerGauge
+          speed={telemetry.currentSpeed}
+          unit={unit}
+          status={telemetry.status}
+          statusMessage={telemetry.statusMessage}
+          theme={currentTheme}
+          maxSpeed={unit === 'km/h' ? telemetry.maxSpeedKmh : telemetry.maxSpeedMph}
+          isDemoMode={telemetry.isDemoMode}
+          onToggleUnit={() => setUnit((p) => (p === 'km/h' ? 'mph' : 'km/h'))}
+          onToggleDemoMode={telemetry.toggleDemoMode}
+        />
 
-        {/* Speedometer Glow Ring (Retro Futuristic HUD) */}
-        <div className="relative flex flex-col items-center justify-center p-6">
-          <div
-            className={`w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 flex flex-col items-center justify-center transition-all duration-700 ${
-              isPlaying
-                ? 'border-amber-400/50 shadow-[0_0_50px_rgba(251,191,36,0.25)] bg-amber-500/[0.04]'
-                : 'border-white/10 bg-white/[0.01]'
-            }`}
-          >
-            <Gauge className={`w-8 h-8 sm:w-10 sm:h-10 mb-1 transition-colors ${isPlaying ? 'text-amber-400' : 'text-white/30'}`} />
-            <span className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight text-white">
-              {speed}
-            </span>
-            <span className="text-xs uppercase tracking-widest text-white/40">{unit}</span>
-          </div>
+        {/* Tachometer Bar with Gear Selector */}
+        <TachometerBar
+          isPlaying={isPlaying}
+          speed={telemetry.currentSpeed}
+          theme={currentTheme}
+        />
 
-          {isPlaying && (
-            <div className="absolute -bottom-2 px-3 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-[10px] font-mono text-amber-200 uppercase tracking-widest animate-pulse">
-              Cruising Vibe
-            </div>
-          )}
-        </div>
+        {/* Live GPS Telemetry Panel (Heading, Odometer, Elevation, Trip Time) */}
+        <GpsTelemetryPanel
+          telemetry={telemetry}
+          unit={unit}
+          theme={currentTheme}
+          tripSeconds={tripSeconds}
+        />
 
-        {/* Track Title */}
-        <div className="w-full max-w-2xl px-4">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-md truncate">
+        {/* Track Title & Artist */}
+        <div className="w-full max-w-xl px-2 pt-1">
+          <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-white tracking-tight drop-shadow-md truncate">
             {currentTrack ? currentTrack.name : 'No track playing'}
           </h1>
-          <p className="text-sm sm:text-base text-white/50 mt-2 font-medium">
-            Swipe left/right to skip • Double tap to play/pause
+          <p className="text-xs sm:text-sm text-white/50 mt-0.5 font-medium">
+            Swipe left/right to skip • Double-tap anywhere to play/pause
           </p>
         </div>
 
-        {/* Large Progress Bar */}
+        {/* Progress Bar Seeker */}
         <div
           onClick={(e) => {
             e.stopPropagation();
@@ -332,38 +396,41 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
             const ratio = (e.clientX - rect.left) / rect.width;
             onSeek(ratio * duration);
           }}
-          className="w-full max-w-xl h-3 bg-white/10 hover:h-4 rounded-full overflow-hidden cursor-pointer transition-all duration-200"
+          className="w-full max-w-xl h-2.5 hover:h-3.5 bg-white/10 rounded-full overflow-hidden cursor-pointer transition-all duration-200"
           role="progressbar"
           aria-valuenow={Math.round(progressPercent)}
           aria-valuemin={0}
           aria-valuemax={100}
         >
           <div
-            className="h-full bg-gradient-to-r from-amber-400 to-amber-200 rounded-full transition-all duration-100 ease-linear"
-            style={{ width: `${progressPercent}%` }}
+            className="h-full rounded-full transition-all duration-100 ease-linear"
+            style={{
+              width: `${progressPercent}%`,
+              backgroundColor: currentTheme.primaryColor,
+              boxShadow: `0 0 10px ${currentTheme.primaryColor}`,
+            }}
           />
         </div>
       </main>
 
       {/* ── Bottom Controls: Extra-Large Tactile Buttons ── */}
-      <footer className="px-6 py-6 border-t border-white/10 bg-white/[0.03] backdrop-blur-xl">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-
-          {/* Left: Shuffle & Mute */}
-          <div className="flex items-center gap-3">
+      <footer className="px-4 sm:px-6 py-4 sm:py-5 border-t border-white/10 bg-black/50 backdrop-blur-2xl shrink-0 z-20">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+          {/* Left: Shuffle & Mute/Volume */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleShuffle();
               }}
               aria-label="Toggle Shuffle"
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center border transition-all ${
                 isShuffle
                   ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
                   : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Shuffle className="w-6 h-6" />
+              <Shuffle className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
             <div className="flex items-center gap-2">
@@ -373,9 +440,13 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
                   onToggleMute();
                 }}
                 aria-label="Toggle Mute"
-                className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-all"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-all"
               >
-                {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />
+                ) : (
+                  <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                )}
               </button>
               <input
                 type="range"
@@ -388,14 +459,14 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
                   onSetVolume(parseFloat(e.target.value));
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-20 sm:w-28 h-2 bg-white/15 rounded-lg appearance-none cursor-pointer accent-amber-400 hidden md:block"
+                className="w-16 sm:w-24 h-2 bg-white/15 rounded-lg appearance-none cursor-pointer accent-amber-400 hidden md:block"
                 aria-label="Car mode volume"
               />
             </div>
           </div>
 
           {/* Center: Previous / Giant Play-Pause / Next */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             {/* Previous Track */}
             <button
               onClick={(e) => {
@@ -403,9 +474,9 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
                 onPrevious();
               }}
               aria-label="Previous Track"
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/15 transition-all shadow-lg"
+              className="w-14 h-14 sm:w-18 sm:h-18 rounded-3xl flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/15 transition-all shadow-lg"
             >
-              <SkipBack className="w-7 h-7 sm:w-9 sm:h-9" />
+              <SkipBack className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
 
             {/* Giant Play/Pause Button */}
@@ -416,16 +487,16 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
               }}
               aria-label={isPlaying ? 'Pause' : 'Play'}
               disabled={isLoading || !currentTrack}
-              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center active:scale-90 transition-all duration-300 shadow-2xl ${
-                isPlaying
-                  ? 'bg-amber-400 text-black shadow-[0_0_40px_rgba(251,191,36,0.5)] hover:bg-amber-300'
-                  : 'bg-white text-black hover:bg-white/90 shadow-[0_0_30px_rgba(255,255,255,0.3)]'
-              }`}
+              className="w-16 h-16 sm:w-22 sm:h-22 rounded-full flex items-center justify-center active:scale-90 transition-all duration-300 shadow-2xl text-black"
+              style={{
+                backgroundColor: isPlaying ? currentTheme.primaryColor : '#ffffff',
+                boxShadow: isPlaying ? `0 0 35px ${currentTheme.glowColor}` : '0 0 25px rgba(255,255,255,0.3)',
+              }}
             >
               {isPlaying ? (
-                <Pause className="w-10 h-10 sm:w-12 sm:h-12 fill-black" />
+                <Pause className="w-8 h-8 sm:w-10 sm:h-10 fill-black" />
               ) : (
-                <Play className="w-10 h-10 sm:w-12 sm:h-12 fill-black translate-x-1" />
+                <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-black translate-x-0.5" />
               )}
             </button>
 
@@ -436,30 +507,29 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
                 onNext();
               }}
               aria-label="Next Track"
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/15 transition-all shadow-lg"
+              className="w-14 h-14 sm:w-18 sm:h-18 rounded-3xl flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/15 transition-all shadow-lg"
             >
-              <SkipForward className="w-7 h-7 sm:w-9 sm:h-9" />
+              <SkipForward className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
           </div>
 
           {/* Right: Repeat Mode */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onCycleRepeat();
               }}
               aria-label={`Repeat: ${repeatMode}`}
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center border transition-all ${
                 repeatMode !== 'off'
                   ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
                   : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10'
               }`}
             >
-              <RepeatIcon className="w-6 h-6" />
+              <RepeatIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
-
         </div>
       </footer>
     </div>
