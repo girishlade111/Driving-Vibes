@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Users, Copy, Check, X, RefreshCw, Radio, Compass,
+  Users, Copy, Check, X, RefreshCw,
 } from 'lucide-react';
 
 interface VirtualTripModalProps {

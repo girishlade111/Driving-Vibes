@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Camera, Download, Sparkles, X, Check, Share2,
+  Camera, Download, Sparkles, X, Check,
 } from 'lucide-react';
 import { Track } from '../../types/music';
 

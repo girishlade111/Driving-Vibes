@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Radio, Upload, Music, X, Disc, Sparkles,
+  Radio, Upload, Music, X, Disc,
 } from 'lucide-react';
 import { RADIO_STATIONS, RadioStation } from '../../types/radioStreams';
 import { Track } from '../../types/music';

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Timer, Play, Pause, RotateCcw, Sparkles, X, FileText, Check, Copy, Volume2, Moon, Sun,
+  Timer, Play, Pause, RotateCcw, X, Check, Copy, Volume2,
 } from 'lucide-react';
-import { usePomodoroTimer, PomodoroMode } from '../../hooks/usePomodoroTimer';
+import { usePomodoroTimer } from '../../hooks/usePomodoroTimer';
 import { useBinauralFrequencies, FrequencyType } from '../../hooks/useBinauralFrequencies';
 
 interface FocusTimerModalProps {
