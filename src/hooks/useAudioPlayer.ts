@@ -2,9 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Track } from '../types/music';
 
 const STORAGE_PLAYLIST_KEY = 'driving_vibes_custom_order';
+const STORAGE_VOLUME_KEY   = 'driving_vibes_volume';
 
 // ── Repeat modes ──────────────────────────────────────────────────────────
 export type RepeatMode = 'off' | 'all' | 'one';
+
+// ── Sleep timer options (minutes) ─────────────────────────────────────────
+export type SleepTimerOption = 0 | 15 | 30 | 45 | 60;
 
 // ── Fisher-Yates shuffle helper ───────────────────────────────────────────
 function shuffleArray<T>(arr: T[]): T[] {
@@ -16,7 +20,22 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
-export function useAudioPlayer() {
+function loadVolume(): number {
+  try {
+    const v = localStorage.getItem(STORAGE_VOLUME_KEY);
+    if (v === null) return 1;
+    const n = parseFloat(v);
+    return isNaN(n) ? 1 : Math.max(0, Math.min(1, n));
+  } catch {
+    return 1;
+  }
+}
+
+export function useAudioPlayer(
+  onTrackChange?: (trackId: string) => void,
+  onPause?: () => void,
+  onResume?: () => void,
+) {
   const [playlist, setPlaylist] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -32,6 +51,16 @@ export function useAudioPlayer() {
   const [isShuffle, setIsShuffle] = useState<boolean>(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
 
+  // ── Volume state ──────────────────────────────────────────────────────
+  const [volume, setVolumeState] = useState<number>(() => loadVolume());
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const prevVolume = useRef<number>(loadVolume());
+
+  // ── Sleep timer state ─────────────────────────────────────────────────
+  const [sleepTimer, setSleepTimer] = useState<SleepTimerOption>(0);
+  const [sleepRemaining, setSleepRemaining] = useState<number>(0); // seconds
+  const sleepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Single persistent HTMLAudioElement instance
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -44,6 +73,8 @@ export function useAudioPlayer() {
   const isPlayingRef = useRef<boolean>(false);
   const isShuffleRef = useRef<boolean>(false);
   const repeatModeRef = useRef<RepeatMode>('off');
+  const volumeRef = useRef<number>(loadVolume());
+  const isMutedRef = useRef<boolean>(false);
 
   // Shuffle queue: indices in shuffled order, consumed as tracks play
   const shuffleQueueRef = useRef<number[]>([]);
@@ -61,6 +92,22 @@ export function useAudioPlayer() {
       audioRef.current.loop = repeatMode === 'one';
     }
   }, [repeatMode]);
+
+  // ── Volume: sync to audio element + localStorage ──────────────────────
+  useEffect(() => {
+    volumeRef.current = volume;
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+    try { localStorage.setItem(STORAGE_VOLUME_KEY, String(volume)); } catch { /* ignore */ }
+  }, [volume, isMuted]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volumeRef.current;
+    }
+  }, [isMuted]);
 
   // ── Build a fresh shuffle queue (exclude currentIndex) ───────────────
   const buildShuffleQueue = useCallback((excludeIndex: number) => {
@@ -83,9 +130,17 @@ export function useAudioPlayer() {
     setCurrentTime(0);
     setDuration(0);
 
+    // Update URL hash for share feature
+    try {
+      window.location.hash = target.id;
+    } catch { /* ignore */ }
+
     audio.src = target.url;
     audio.loop = repeatModeRef.current === 'one';
     audio.load();
+
+    // Notify stats hook
+    if (onTrackChange) onTrackChange(target.id);
 
     if (autoPlay) {
       setIsLoading(true);
@@ -101,7 +156,7 @@ export function useAudioPlayer() {
         });
       }
     }
-  }, []);
+  }, [onTrackChange]);
 
   // ── Get the next index honouring shuffle / repeat ─────────────────────
   const getNextIndex = useCallback(
@@ -133,6 +188,7 @@ export function useAudioPlayer() {
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'metadata';
+    audio.volume = isMutedRef.current ? 0 : volumeRef.current;
     audioRef.current = audio;
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
@@ -144,12 +200,14 @@ export function useAudioPlayer() {
       setIsPlaying(true);
       isPlayingRef.current = true;
       setError(null);
+      if (onResume) onResume();
     };
 
     const handlePause = () => {
       setIsPlaying(false);
       isPlayingRef.current = false;
       setIsLoading(false);
+      if (onPause) onPause();
     };
 
     /**
@@ -212,6 +270,7 @@ export function useAudioPlayer() {
       audio.pause();
       audio.src = '';
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goToIndex, getNextIndex]);
 
   // ── Fetch tracks from API on mount ────────────────────────────────────
@@ -258,9 +317,17 @@ export function useAudioPlayer() {
         setPlaylist(fetchedTracks);
 
         if (fetchedTracks.length > 0 && audioRef.current) {
-          currentIndexRef.current = 0;
-          setCurrentIndex(0);
-          audioRef.current.src = fetchedTracks[0].url;
+          // Check URL hash for share feature — jump to requested track
+          let startIndex = 0;
+          const hash = window.location.hash.slice(1);
+          if (hash) {
+            const idx = fetchedTracks.findIndex((t) => t.id === hash);
+            if (idx !== -1) startIndex = idx;
+          }
+
+          currentIndexRef.current = startIndex;
+          setCurrentIndex(startIndex);
+          audioRef.current.src = fetchedTracks[startIndex].url;
           audioRef.current.preload = 'metadata';
         }
       } catch (err) {
@@ -369,7 +436,6 @@ export function useAudioPlayer() {
     setIsShuffle((prev) => {
       const next = !prev;
       if (next) {
-        // Build queue immediately when enabling shuffle
         buildShuffleQueue(currentIndexRef.current);
       } else {
         shuffleQueueRef.current = [];
@@ -420,6 +486,91 @@ export function useAudioPlayer() {
     }
   }, [buildShuffleQueue]);
 
+  // ── Volume control ────────────────────────────────────────────────────
+  const setVolume = useCallback((v: number) => {
+    const clamped = Math.max(0, Math.min(1, v));
+    prevVolume.current = clamped > 0 ? clamped : prevVolume.current;
+    setVolumeState(clamped);
+    if (clamped > 0 && isMutedRef.current) {
+      setIsMuted(false);
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (!next && volumeRef.current === 0) {
+        // Restore previous volume when un-muting from 0
+        setVolumeState(prevVolume.current > 0 ? prevVolume.current : 0.7);
+      }
+      return next;
+    });
+  }, []);
+
+  // ── Sleep Timer ───────────────────────────────────────────────────────
+  const setSleepTimerOption = useCallback((minutes: SleepTimerOption) => {
+    // Clear any existing timer
+    if (sleepTimerRef.current) {
+      clearInterval(sleepTimerRef.current);
+      sleepTimerRef.current = null;
+    }
+
+    setSleepTimer(minutes);
+
+    if (minutes === 0) {
+      setSleepRemaining(0);
+      return;
+    }
+
+    const totalSeconds = minutes * 60;
+    setSleepRemaining(totalSeconds);
+
+    let remaining = totalSeconds;
+    sleepTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      setSleepRemaining(remaining);
+
+      if (remaining <= 0) {
+        // Time's up — pause audio
+        clearInterval(sleepTimerRef.current!);
+        sleepTimerRef.current = null;
+        setSleepTimer(0);
+        setSleepRemaining(0);
+        if (audioRef.current) audioRef.current.pause();
+      }
+    }, 1000);
+  }, []);
+
+  // ── Cancel sleep timer ────────────────────────────────────────────────
+  const cancelSleepTimer = useCallback(() => {
+    if (sleepTimerRef.current) {
+      clearInterval(sleepTimerRef.current);
+      sleepTimerRef.current = null;
+    }
+    setSleepTimer(0);
+    setSleepRemaining(0);
+  }, []);
+
+  // Cleanup sleep timer on unmount
+  useEffect(() => {
+    return () => {
+      if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
+    };
+  }, []);
+
+  // ── Share current track (copy URL with hash to clipboard) ─────────────
+  const shareCurrentTrack = useCallback(async (): Promise<boolean> => {
+    const track = playlistRef.current[currentIndexRef.current];
+    if (!track) return false;
+    try {
+      const url = `${window.location.origin}${window.location.pathname}#${track.id}`;
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   // ── Playlist open/close ───────────────────────────────────────────────
   const togglePlaylist = useCallback(() => setIsPlaylistOpen((prev) => !prev), []);
   const closePlaylist = useCallback(() => setIsPlaylistOpen(false), []);
@@ -436,12 +587,24 @@ export function useAudioPlayer() {
           togglePlay();
           break;
         case 'ArrowRight':
-          e.preventDefault();
-          next();
+          if (e.shiftKey) {
+            // Shift+Right = volume up
+            e.preventDefault();
+            setVolume(Math.min(1, volumeRef.current + 0.05));
+          } else {
+            e.preventDefault();
+            next();
+          }
           break;
         case 'ArrowLeft':
-          e.preventDefault();
-          previous();
+          if (e.shiftKey) {
+            // Shift+Left = volume down
+            e.preventDefault();
+            setVolume(Math.max(0, volumeRef.current - 0.05));
+          } else {
+            e.preventDefault();
+            previous();
+          }
           break;
         case 'Escape':
           e.preventDefault();
@@ -455,12 +618,16 @@ export function useAudioPlayer() {
           e.preventDefault();
           cycleRepeat();
           break;
+        case 'KeyM':
+          e.preventDefault();
+          toggleMute();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, next, previous, closePlaylist, toggleShuffle, cycleRepeat]);
+  }, [togglePlay, next, previous, closePlaylist, toggleShuffle, cycleRepeat, toggleMute, setVolume]);
 
   return {
     playlist,
@@ -476,6 +643,10 @@ export function useAudioPlayer() {
     dataSource,
     isShuffle,
     repeatMode,
+    volume,
+    isMuted,
+    sleepTimer,
+    sleepRemaining,
     togglePlay,
     selectTrack,
     next,
@@ -486,5 +657,10 @@ export function useAudioPlayer() {
     closePlaylist,
     toggleShuffle,
     cycleRepeat,
+    setVolume,
+    toggleMute,
+    setSleepTimerOption,
+    cancelSleepTimer,
+    shareCurrentTrack,
   };
 }
