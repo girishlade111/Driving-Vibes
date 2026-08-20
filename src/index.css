@@ -342,3 +342,59 @@
 .toast-exit {
   animation: toastOut 220ms ease-in both;
 }
+
+
+/* ── Postcard preview shimmer sweep ────────────────────────────────────────── */
+@keyframes postcardShimmer {
+  0%   { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
+  20%  { opacity: 1; }
+  60%  { opacity: 0.6; }
+  100% { transform: translateX(200%) skewX(-12deg); opacity: 0; }
+}
+
+.postcard-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.postcard-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 80%
+  );
+  animation: postcardShimmer 3.6s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+/* ── Postcard scan-line overlay ─────────────────────────────────────────────── */
+@keyframes scanMove {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100%);  }
+}
+
+.postcard-preview-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.03) 3px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  border-radius: inherit;
+}
