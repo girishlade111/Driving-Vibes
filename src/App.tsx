@@ -228,6 +228,14 @@ export const App: React.FC = () => {
   }, [stopTracking]);
 
   // ── Flagship Features ─────────────────────────────────────────────────
+  // Local file upload disabled — only R2 songs are allowed.
+  const handleLocalFiles = useCallback(() => {}, []);
+  
+  // Radio station selection disabled — only R2 songs are allowed.
+  const handleSelectRadioStation = useCallback(() => {}, []);
+
+  // Global drag-and-drop disabled — only R2 songs are allowed.
+
   const ambient = useAmbientMixer();
   const eq = useAudioEqualizer(audioRef);
   const dj = useAiDjHost();
@@ -249,48 +257,6 @@ export const App: React.FC = () => {
       announceTrackFn(currentTrack.name, currentTrack.id);
     }
   }, [currentTrack?.id, isDjEnabled, announceTrackFn]);
-
-  // ── Local Audio Files Handler ─────────────────────────────────────────
-  const handleLocalFiles = useCallback((files: FileList | File[]) => {
-    const trackList: Track[] = Array.from(files).map((file) => ({
-      id: `local_${Date.now()}_${file.name}`,
-      name: file.name.replace(/\.[^/.]+$/, ''),
-      url: URL.createObjectURL(file),
-      size: file.size,
-    }));
-    if (trackList.length > 0) {
-      addCustomTracks(trackList, true);
-    }
-  }, [addCustomTracks]);
-
-  // ── Radio Station Selector Handler ────────────────────────────────────
-  const handleSelectRadioStation = useCallback((station: RadioStation) => {
-    const radioTrack: Track = {
-      id: `radio_${station.id}`,
-      name: `${station.name} (${station.genre})`,
-      url: station.streamUrl,
-    };
-    addCustomTracks([radioTrack], true);
-  }, [addCustomTracks]);
-
-  // ── Global Window Drag-and-Drop for Audio Files ───────────────────────
-  useEffect(() => {
-    const handleDragOver = (e: DragEvent) => {
-      e.preventDefault();
-    };
-    const handleDrop = (e: DragEvent) => {
-      e.preventDefault();
-      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-        handleLocalFiles(e.dataTransfer.files);
-      }
-    };
-    window.addEventListener('dragover', handleDragOver);
-    window.addEventListener('drop', handleDrop);
-    return () => {
-      window.removeEventListener('dragover', handleDragOver);
-      window.removeEventListener('drop', handleDrop);
-    };
-  }, [handleLocalFiles]);
 
   // ── Voice Commands ────────────────────────────────────────────────────
   const voice = useVoiceCommands({
@@ -612,13 +578,13 @@ export const App: React.FC = () => {
         onClose={() => setIsFocusOpen(false)}
       />
 
-      {/* 8. 24/7 Live Radio & Local Music Files */}
+      {/* 8. 24/7 Live Radio (station add disabled — only R2 songs allowed) */}
       <RadioStationModal
         isOpen={isRadioOpen}
         onClose={() => setIsRadioOpen(false)}
         currentTrack={currentTrack}
-        onSelectStation={handleSelectRadioStation}
-        onAddLocalFiles={handleLocalFiles}
+        onSelectStation={() => {}}
+        onAddLocalFiles={() => {}}
       />
 
       {/* Backlink — bottom-left, minimal */}
