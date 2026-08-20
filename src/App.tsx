@@ -72,7 +72,7 @@ export const App: React.FC = () => {
       />
 
       {/* z-29 — Music wave visualizer (above background, below player) */}
-      <MusicWave isVisible={showWave} isPlaying={isPlaying} />
+      <MusicWave isVisible={showWave} isPlaying={isPlaying} playerPosition={playerPosition} />
 
       {/* z-40 — Error toast */}
       {error && (

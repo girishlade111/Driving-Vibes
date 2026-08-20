@@ -1,11 +1,17 @@
 import React from 'react';
+import { PlayerPosition } from '../../App';
 
 interface MusicWaveProps {
-  isVisible: boolean;  // settings toggle
-  isPlaying: boolean;  // audio state
+  isVisible: boolean;      // settings toggle
+  isPlaying: boolean;      // audio state
+  playerPosition: PlayerPosition;
 }
 
 const NUM_BARS = 38;
+
+// Player pill height ≈ 60px, gap above player = 14px
+const PLAYER_HEIGHT_PX  = 60;
+const WAVE_GAP_PX       = 14;
 
 /**
  * Deterministic bar configs — no randomness so the wave is consistent
@@ -26,17 +32,41 @@ const BAR_CONFIGS = Array.from({ length: NUM_BARS }, (_, i) => {
   return { maxH, minH, duration, delay, opacity };
 });
 
-export const MusicWave: React.FC<MusicWaveProps> = ({ isVisible, isPlaying }) => {
+export const MusicWave: React.FC<MusicWaveProps> = ({ isVisible, isPlaying, playerPosition }) => {
+  /**
+   * bottom position calculation:
+   *
+   * center mode → player is vertically centred (top: 50vh, -translate-y-1/2).
+   *   Wave sits just above it:
+   *   bottom = 50vh + (playerHeight / 2) + gap  ≈  50vh + 44px
+   *
+   * bottom mode → player bottom edge is at: calc(20px + safe-area).
+   *   Wave sits just above the player top edge:
+   *   bottom = playerBottomOffset + playerHeight + gap
+   *          = (20px + safe-area) + 60px + 14px
+   *          = calc(94px + env(safe-area-inset-bottom, 0px))
+   */
+  const bottomStyle: React.CSSProperties =
+    playerPosition === 'bottom'
+      ? {
+          bottom: `calc(${PLAYER_HEIGHT_PX + WAVE_GAP_PX + 20}px + env(safe-area-inset-bottom, 0px))`,
+          transition: 'bottom 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+        }
+      : {
+          bottom: `calc(50vh + ${Math.round(PLAYER_HEIGHT_PX / 2) + WAVE_GAP_PX}px)`,
+          transition: 'bottom 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+        };
+
   return (
     <div
       aria-hidden="true"
-      className="fixed left-1/2 -translate-x-1/2 flex items-end gap-[2.5px] transition-opacity duration-500"
+      className="fixed left-1/2 -translate-x-1/2 flex items-end gap-[2.5px]"
       style={{
-        // Sit just above the centred player (player height ≈ 60 px, gap 14 px)
-        bottom: 'calc(50vh + 44px)',
+        ...bottomStyle,
         zIndex: 29,
         opacity: isVisible ? 1 : 0,
         pointerEvents: 'none',
+        transition: `bottom 500ms cubic-bezier(0.16, 1, 0.3, 1), opacity 500ms ease`,
       }}
     >
       {BAR_CONFIGS.map((cfg, i) => (
@@ -45,7 +75,6 @@ export const MusicWave: React.FC<MusicWaveProps> = ({ isVisible, isPlaying }) =>
           className="rounded-full"
           style={{
             width: '2.5px',
-            // CSS custom properties drive the keyframe animation
             '--min-h': `${cfg.minH}px`,
             '--max-h': `${cfg.maxH}px`,
             height: isPlaying ? `${cfg.maxH}px` : `${cfg.minH}px`,
