@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, GripVertical, Play, Volume2, Heart, Search, BarChart2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, GripVertical, Play, Volume2, Search, BarChart2 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { TrackStat } from '../../hooks/useListeningStats';
 
@@ -9,12 +9,10 @@ interface PlaylistPanelProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   isTracksLoading: boolean;
-  favorites: Set<string>;
   getTrackStat: (trackId: string) => TrackStat;
   onClose: () => void;
   onSelectTrack: (index: number) => void;
   onReorder: (newPlaylist: Track[]) => void;
-  onToggleFavorite: (trackId: string) => void;
 }
 
 export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
@@ -23,18 +21,15 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   currentTrack,
   isPlaying,
   isTracksLoading,
-  favorites,
   getTrackStat,
   onClose,
   onSelectTrack,
   onReorder,
-  onToggleFavorite,
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [showFavesOnly, setShowFavesOnly] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const touchStartY = useRef<number>(0);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -94,7 +89,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   const filteredPlaylist = playlist
     .map((track, originalIndex) => ({ track, originalIndex }))
     .filter(({ track }) => {
-      if (showFavesOnly && !favorites.has(track.id)) return false;
       if (searchQuery && !track.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
@@ -151,13 +145,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     }
   };
 
-  const handleFaveClick = useCallback((e: React.MouseEvent, trackId: string) => {
-    e.stopPropagation();
-    onToggleFavorite(trackId);
-  }, [onToggleFavorite]);
-
-  const favCount = playlist.filter(t => favorites.has(t.id)).length;
-
   return (
     <>
       {/* ── Backdrop — z-20 ─────────────────────────────────────────────── */}
@@ -195,21 +182,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/50 font-mono tabular-nums">
                   {filteredPlaylist.length}
                 </span>
-
-                {/* Faves filter toggle */}
-                <button
-                  onClick={() => setShowFavesOnly(p => !p)}
-                  aria-pressed={showFavesOnly}
-                  title={showFavesOnly ? 'Show all tracks' : 'Show favorites only (F)'}
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
-                    showFavesOnly
-                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/30'
-                      : 'bg-white/8 text-white/40 hover:text-white/60 border border-transparent'
-                  }`}
-                >
-                  <Heart className="w-2.5 h-2.5" fill={showFavesOnly ? 'currentColor' : 'none'} />
-                  {favCount > 0 && <span>{favCount}</span>}
-                </button>
 
                 {/* Stats toggle */}
                 <button
@@ -290,28 +262,27 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             </div>
           ) : filteredPlaylist.length === 0 ? (
             <div className="py-12 text-center text-white/30 text-xs tracking-wide">
-              {searchQuery ? 'No tracks match your search.' : showFavesOnly ? 'No favorites yet. ❤️' : 'No music available.'}
+              {searchQuery ? 'No tracks match your search.' : 'No music available.'}
             </div>
           ) : (
             filteredPlaylist.map(({ track, originalIndex }) => {
               const isActive = currentTrack?.id === track.id;
               const isDragging = draggedIndex === originalIndex;
               const isDropTarget = dragOverIndex === originalIndex && draggedIndex !== originalIndex;
-              const isFav = favorites.has(track.id);
               const stat = getTrackStat(track.id);
 
               return (
                 <div
                   key={track.id}
                   role="listitem"
-                  draggable={!searchQuery && !showFavesOnly}
+                  draggable={!searchQuery}
                   onDragStart={(e) => handleDragStart(e, originalIndex)}
                   onDragOver={(e) => handleDragOver(e, originalIndex)}
                   onDrop={(e) => handleDrop(e, originalIndex)}
                   onDragEnd={handleDragEnd}
                   onDragLeave={handleDragLeave}
                   onClick={() => onSelectTrack(originalIndex)}
-                  aria-label={`${track.name}${isActive ? ', currently playing' : ''}${isFav ? ', favorited' : ''}`}
+                  aria-label={`${track.name}${isActive ? ', currently playing' : ''}`}
                   className={[
                     'group relative flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer select-none',
                     'transition-all duration-150 ease-out',
@@ -325,7 +296,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     .join(' ')}
                 >
                   {/* Drag handle */}
-                  {!searchQuery && !showFavesOnly && (
+                  {!searchQuery && (
                     <div
                       className="shrink-0 cursor-grab active:cursor-grabbing text-white/20 group-hover:text-white/40 transition-colors touch-none"
                       onClick={(e) => e.stopPropagation()}
@@ -361,20 +332,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     </span>
                   )}
 
-                  {/* Heart button */}
-                  <button
-                    onClick={(e) => handleFaveClick(e, track.id)}
-                    aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                    aria-pressed={isFav}
-                    className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200 active:scale-90 ${
-                      isFav
-                        ? 'text-rose-400 opacity-100'
-                        : 'text-white/25 opacity-0 group-hover:opacity-100 hover:text-rose-300'
-                    }`}
-                  >
-                    <Heart className="w-3 h-3" fill={isFav ? 'currentColor' : 'none'} />
-                  </button>
-
                   {/* Right indicator */}
                   <div className="shrink-0 w-4 flex items-center justify-center">
                     {isActive ? (
@@ -389,10 +346,10 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                           <span className="w-[2px] bg-white rounded-full bar-3" />
                         </span>
                       ) : (
-                        <Volume2 className="w-3.5 h-3.5 text-white/50" />
+                        <Volume2 className="w-3 h-3 text-white/50" />
                       )
                     ) : (
-                      <Play className="w-3 h-3 text-white/30 opacity-0 group-hover:opacity-100 transition-opacity fill-current" />
+                      <Play className="w-3 h-3 text-white/30 opacity-0 group-hover:opacity-100 transition-opacity" />
                     )}
                   </div>
                 </div>
@@ -400,12 +357,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             })
           )}
         </div>
-
-        {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <footer className="px-4 py-2 border-t border-white/5 text-[10px] text-white/25 flex items-center justify-between shrink-0">
-          <span>{searchQuery || showFavesOnly ? 'Filtered view' : 'Drag to reorder'}</span>
-          <span className="hidden sm:inline">Esc to close · / to search</span>
-        </footer>
       </section>
     </>
   );
