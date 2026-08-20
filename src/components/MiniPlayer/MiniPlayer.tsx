@@ -337,38 +337,41 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             </button>
           )}
 
-          {/* Volume control */}
+          {/* Volume control with clean floating popup (zero overlap) */}
           <div
             className="relative flex items-center"
             onMouseEnter={handleVolumeEnter}
             onMouseLeave={handleVolumeLeave}
           >
-            <div
-              className={`absolute right-full mr-1 flex items-center transition-all duration-200 overflow-hidden ${
-                showVolumeSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'
-              }`}
-              style={{ pointerEvents: showVolumeSlider ? 'auto' : 'none' }}
-            >
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={isMuted ? 0 : volume}
-                onChange={(e) => onSetVolume(Number(e.target.value))}
-                aria-label="Volume"
-                className="volume-slider"
-                style={{
-                  background: `linear-gradient(to right, rgba(255,255,255,0.65) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.12) ${(isMuted ? 0 : volume) * 100}%)`,
-                }}
-              />
-            </div>
+            {showVolumeSlider && (
+              <div
+                className="absolute bottom-full mb-2.5 left-1/2 -translate-x-1/2 px-3 py-2 rounded-2xl bg-black/90 border border-white/15 shadow-2xl backdrop-blur-xl flex items-center gap-2 z-50 animate-fadeIn min-w-[120px]"
+                style={{ pointerEvents: 'auto' }}
+              >
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => onSetVolume(Number(e.target.value))}
+                  aria-label="Volume"
+                  className="volume-slider w-20"
+                  style={{
+                    background: `linear-gradient(to right, rgba(255,255,255,0.85) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.15) ${(isMuted ? 0 : volume) * 100}%)`,
+                  }}
+                />
+                <span className="text-[10px] font-mono text-white/70 min-w-[28px] text-right">
+                  {isMuted ? '0%' : `${Math.round(volume * 100)}%`}
+                </span>
+              </div>
+            )}
 
             <button
               onClick={onToggleMute}
               aria-label={isMuted ? 'Unmute (M)' : 'Mute (M)'}
               aria-pressed={isMuted}
-              title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+              title={isMuted ? 'Unmute (M)' : `Volume ${Math.round(volume * 100)}% (M)`}
               className={iconBtn(isMuted)}
             >
               <VolumeIcon className="w-3.5 h-3.5" />
