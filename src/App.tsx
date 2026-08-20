@@ -601,6 +601,9 @@ export const App: React.FC = () => {
         onClose={() => setIsPostcardOpen(false)}
         currentTrack={currentTrack}
         accentColor={accentColor}
+        activeBgPreset={bgPreset}
+        customBgUrl={customBgUrl}
+        onApplyWallpaper={handleSetCustomBgUrl}
       />
 
       {/* 7. Focus & Zen Productivity Suite */}

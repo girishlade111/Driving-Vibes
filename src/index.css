@@ -398,3 +398,23 @@
   );
   border-radius: inherit;
 }
+
+/* ── Studio Range Slider Enhancements ────────────────────────────────────────── */
+input[type='range'] {
+  accent-color: #f59e0b;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #fbbf24;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+  transition: transform 0.15s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
