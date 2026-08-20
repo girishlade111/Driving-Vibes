@@ -127,7 +127,6 @@ export const App: React.FC = () => {
     try { localStorage.setItem(STORAGE_CUSTOM_BG_KEY, url); } catch { /* ignore */ }
   }, []);
 
-  const toggleAnimation    = useCallback(() => setIsAnimated((p) => !p), []);
   const handleBlurChange   = useCallback((v: number) => setBlur(v), []);
   const toggleWave         = useCallback(() => setShowWave((p) => !p), []);
   const handlePositionChange = useCallback((pos: PlayerPosition) => setPlayerPosition(pos), []);
