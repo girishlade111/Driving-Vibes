@@ -223,12 +223,20 @@ app.get('/api/health', (_req, res) => {
 
 // ── Static Frontend (production) ──────────────────────────────────────────
 const distPath = path.join(__dirname, '../dist');
-app.use(express.static(distPath, { maxAge: '1h' }));
+app.use(express.static(distPath, {
+  maxAge: 0,
+  setHeaders: (res, pathUrl) => {
+    if (pathUrl.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  },
+}));
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'Endpoint not found' });
   }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
