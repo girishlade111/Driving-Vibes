@@ -465,7 +465,6 @@ export const App: React.FC = () => {
         currentTrack={currentTrack}
         isPlaying={isPlaying}
         isTracksLoading={isTracksLoading}
-        favorites={favorites}
         getTrackStat={getTrackStat}
         onClose={closePlaylist}
         onSelectTrack={(index) => {
@@ -473,7 +472,6 @@ export const App: React.FC = () => {
           if (window.innerWidth < 640) closePlaylist();
         }}
         onReorder={reorderPlaylist}
-        onToggleFavorite={toggleFavorite}
       />
 
       {/* z-30 — Mini player */}
@@ -490,7 +488,6 @@ export const App: React.FC = () => {
         playerPosition={playerPosition}
         volume={volume}
         isMuted={isMuted}
-        isFavorite={currentTrack ? isFavorite(currentTrack.id) : false}
         ambientActiveCount={ambient.activeCount}
         onTogglePlay={togglePlay}
         onPrevious={previous}
@@ -501,7 +498,6 @@ export const App: React.FC = () => {
         onCycleRepeat={cycleRepeat}
         onSetVolume={setVolume}
         onToggleMute={toggleMute}
-        onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)}
         onShare={handleShare}
         onToggleAmbientMixer={ambient.toggleMixer}
         onToggleAudioFx={eq.toggleEq}
