@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, PanelBottom,
+  Settings, Sparkles, AudioLines, AlignCenter, PanelBottom,
   Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, Film, SunMedium,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
@@ -9,12 +9,10 @@ import { ListeningStats } from '../../hooks/useListeningStats';
 import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from '../../types/backgroundPresets';
 
 interface SettingsPanelProps {
-  isAnimated: boolean;
   blur: number;
   showWave: boolean;
   playerPosition: PlayerPosition;
   showNowPlaying: boolean;
-  onToggleAnimated: () => void;
   onBlurChange: (value: number) => void;
   onToggleWave: () => void;
   onPositionChange: (pos: PlayerPosition) => void;

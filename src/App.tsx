@@ -156,7 +156,6 @@ export const App: React.FC = () => {
   const {
     playlist,
     currentTrack,
-    currentIndex,
     isPlaying,
     currentTime,
     duration,
