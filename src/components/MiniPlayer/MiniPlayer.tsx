@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, ListMusic, Loader2,
-  Shuffle, Repeat, Repeat1,
+  Shuffle, Repeat, Repeat1, Volume2, Volume1, VolumeX, Heart, Share2, Check,
 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RepeatMode } from '../../hooks/useAudioPlayer';
@@ -18,6 +18,9 @@ interface MiniPlayerProps {
   isShuffle: boolean;
   repeatMode: RepeatMode;
   playerPosition: PlayerPosition;
+  volume: number;
+  isMuted: boolean;
+  isFavorite: boolean;
   onTogglePlay: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -25,6 +28,10 @@ interface MiniPlayerProps {
   onSeek: (seconds: number) => void;
   onToggleShuffle: () => void;
   onCycleRepeat: () => void;
+  onSetVolume: (v: number) => void;
+  onToggleMute: () => void;
+  onToggleFavorite: () => void;
+  onShare: () => Promise<boolean>;
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({
@@ -38,6 +45,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   isShuffle,
   repeatMode,
   playerPosition,
+  volume,
+  isMuted,
+  isFavorite,
   onTogglePlay,
   onPrevious,
   onNext,
@@ -45,16 +55,51 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onSeek,
   onToggleShuffle,
   onCycleRepeat,
+  onSetVolume,
+  onToggleMute,
+  onToggleFavorite,
+  onShare,
 }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [heartAnimating, setHeartAnimating] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const volumeHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Progress bar click ─────────────────────────────────────────────────
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressBarRef.current || duration <= 0) return;
     const rect = progressBarRef.current.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     onSeek(ratio * duration);
   };
+
+  // ── Volume slider hover logic ──────────────────────────────────────────
+  const handleVolumeEnter = useCallback(() => {
+    if (volumeHideTimer.current) clearTimeout(volumeHideTimer.current);
+    setShowVolumeSlider(true);
+  }, []);
+
+  const handleVolumeLeave = useCallback(() => {
+    volumeHideTimer.current = setTimeout(() => setShowVolumeSlider(false), 600);
+  }, []);
+
+  // ── Heart button ───────────────────────────────────────────────────────
+  const handleToggleFavorite = useCallback(() => {
+    onToggleFavorite();
+    setHeartAnimating(true);
+    setTimeout(() => setHeartAnimating(false), 450);
+  }, [onToggleFavorite]);
+
+  // ── Share button ───────────────────────────────────────────────────────
+  const handleShare = useCallback(async () => {
+    const ok = await onShare();
+    if (ok) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }, [onShare]);
 
   const showSpinner = isLoading || isTracksLoading;
   const playDisabled = isTracksLoading || !currentTrack;
@@ -66,6 +111,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
                            'Repeat: One (R)';
 
   const RepeatIcon = repeatMode === 'one' ? Repeat1 : Repeat;
+
+  // ── Volume icon ───────────────────────────────────────────────────────
+  const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   // ── Shared icon-button class factory ─────────────────────────────────
   const iconBtn = (active: boolean, extra = '') =>
@@ -79,8 +127,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
     ].join(' ');
 
   // ── Position classes ──────────────────────────────────────────────────
-  // center: fixed to exact middle of viewport (default)
-  // bottom: fixed to bottom with safe-area padding
   const positionClass =
     playerPosition === 'bottom'
       ? 'fixed bottom-player-safe left-1/2 -translate-x-1/2'
@@ -89,9 +135,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   return (
     <nav
       aria-label="Audio player controls"
-      className={`${positionClass} z-30 w-[calc(100vw-24px)] sm:w-[480px] md:w-[520px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
+      className={`${positionClass} z-30 w-[calc(100vw-24px)] sm:w-[520px] md:w-[560px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
     >
-      <div className="glass-player relative flex items-center px-2.5 sm:px-3.5 py-2.5 rounded-full overflow-hidden group shadow-2xl">
+      <div className="glass-player relative flex items-center px-2 sm:px-3 py-2.5 rounded-full overflow-visible group shadow-2xl">
 
         {/* ── Thin progress bar along bottom edge ── */}
         <div
@@ -103,16 +149,16 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           aria-valuemax={100}
           aria-label="Playback progress"
           title={`${Math.round(progressPercent)}% played`}
-          className="absolute inset-x-0 bottom-0 h-[2px] bg-white/10 hover:h-[4px] cursor-pointer transition-all duration-200"
+          className="absolute inset-x-0 bottom-0 h-[2px] bg-white/10 hover:h-[4px] cursor-pointer transition-all duration-200 rounded-b-full"
         >
           <div
-            className="h-full bg-white/80 rounded-r-full transition-[width] duration-100 ease-linear"
-            style={{ width: `${progressPercent}%` }}
+            className="h-full rounded-r-full transition-[width] duration-100 ease-linear"
+            style={{ width: `${progressPercent}%`, background: 'var(--accent, rgba(255,255,255,0.8))' }}
           />
         </div>
 
         {/* ── Far-Left: Shuffle ── */}
-        <div className="shrink-0 mr-0.5">
+        <div className="shrink-0">
           <button
             onClick={onToggleShuffle}
             disabled={playDisabled}
@@ -121,7 +167,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             title={`Shuffle: ${isShuffle ? 'On' : 'Off'} (S)`}
             className={iconBtn(isShuffle, 'disabled:opacity-30 disabled:pointer-events-none')}
           >
-            {/* Active dot indicator under icon */}
             <span className="relative">
               <Shuffle className="w-3.5 h-3.5" />
               {isShuffle && (
@@ -173,11 +218,11 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           </button>
         </div>
 
-        {/* ── Center: Song info ── */}
-        <div className="flex items-center min-w-0 flex-1 px-2 sm:px-3">
+        {/* ── Center: Song info + Heart ── */}
+        <div className="flex items-center min-w-0 flex-1 px-1 sm:px-2">
           {/* Animated equalizer bars when playing */}
           {isPlaying && !showSpinner && (
-            <span className="flex items-end gap-[2px] h-3 mr-2 shrink-0" aria-hidden="true">
+            <span className="flex items-end gap-[2px] h-3 mr-1.5 shrink-0" aria-hidden="true">
               <span className="w-[2px] bg-white/80 rounded-full bar-1" />
               <span className="w-[2px] bg-white/80 rounded-full bar-2" />
               <span className="w-[2px] bg-white/80 rounded-full bar-3" />
@@ -185,7 +230,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           )}
 
           <p
-            className="text-xs sm:text-[13px] font-medium tracking-wide text-white/90 truncate leading-none"
+            className="text-xs sm:text-[13px] font-medium tracking-wide text-white/90 truncate leading-none flex-1"
             title={currentTrack?.name ?? 'No track selected'}
           >
             {isTracksLoading
@@ -194,10 +239,68 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
               ? currentTrack.name
               : 'Select a track'}
           </p>
+
+          {/* Heart / Favorite button */}
+          {currentTrack && (
+            <button
+              onClick={handleToggleFavorite}
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              aria-pressed={isFavorite}
+              title={isFavorite ? 'Unlike (L)' : 'Like (L)'}
+              className={`shrink-0 ml-1 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                isFavorite ? 'text-rose-400 hover:text-rose-300' : 'text-white/35 hover:text-white/70'
+              } ${heartAnimating ? 'heart-beat' : ''}`}
+            >
+              <Heart
+                className="w-3.5 h-3.5"
+                fill={isFavorite ? 'currentColor' : 'none'}
+              />
+            </button>
+          )}
         </div>
 
-        {/* ── Right controls: Repeat + Playlist ── */}
-        <div className="flex items-center gap-0.5 shrink-0 ml-0.5">
+        {/* ── Right controls: Volume + Repeat + Share + Playlist ── */}
+        <div className="flex items-center gap-0.5 shrink-0">
+
+          {/* Volume control */}
+          <div
+            className="relative flex items-center"
+            onMouseEnter={handleVolumeEnter}
+            onMouseLeave={handleVolumeLeave}
+          >
+            {/* Volume expand slider */}
+            <div
+              className={`absolute right-full mr-1 flex items-center transition-all duration-200 overflow-hidden ${
+                showVolumeSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'
+              }`}
+              style={{ pointerEvents: showVolumeSlider ? 'auto' : 'none' }}
+            >
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={isMuted ? 0 : volume}
+                onChange={(e) => onSetVolume(Number(e.target.value))}
+                aria-label="Volume"
+                className="volume-slider"
+                style={{
+                  background: `linear-gradient(to right, rgba(255,255,255,0.65) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.12) ${(isMuted ? 0 : volume) * 100}%)`,
+                }}
+              />
+            </div>
+
+            <button
+              onClick={onToggleMute}
+              aria-label={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+              aria-pressed={isMuted}
+              title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+              className={iconBtn(isMuted)}
+            >
+              <VolumeIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           {/* Repeat */}
           <button
             onClick={onCycleRepeat}
@@ -214,6 +317,22 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
               )}
             </span>
           </button>
+
+          {/* Share */}
+          {currentTrack && (
+            <button
+              onClick={handleShare}
+              aria-label="Share current track"
+              title="Copy link to this track"
+              className={iconBtn(shareCopied)}
+            >
+              {shareCopied ? (
+                <Check className="w-3.5 h-3.5 text-green-400" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
 
           {/* Playlist */}
           <button
