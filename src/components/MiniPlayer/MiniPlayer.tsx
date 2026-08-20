@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, ListMusic, Loader2,
-  Shuffle, Repeat, Repeat1, Volume2, Volume1, VolumeX, Heart, Share2, Check,
+  Shuffle, Repeat, Repeat1, Volume2, Volume1, VolumeX, Share2, Check,
   CloudRain, Sliders, Car, Radio, Timer, Camera, Users,
 } from 'lucide-react';
 import { Track } from '../../types/music';
@@ -21,7 +21,6 @@ interface MiniPlayerProps {
   playerPosition: PlayerPosition;
   volume: number;
   isMuted: boolean;
-  isFavorite: boolean;
   ambientActiveCount?: number;
   onTogglePlay: () => void;
   onPrevious: () => void;
@@ -32,7 +31,6 @@ interface MiniPlayerProps {
   onCycleRepeat: () => void;
   onSetVolume: (v: number) => void;
   onToggleMute: () => void;
-  onToggleFavorite: () => void;
   onShare: () => Promise<boolean>;
   onToggleAmbientMixer?: () => void;
   onToggleAudioFx?: () => void;
@@ -56,7 +54,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   playerPosition,
   volume,
   isMuted,
-  isFavorite,
   ambientActiveCount = 0,
   onTogglePlay,
   onPrevious,
@@ -67,7 +64,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onCycleRepeat,
   onSetVolume,
   onToggleMute,
-  onToggleFavorite,
   onShare,
   onToggleAmbientMixer,
   onToggleAudioFx,
@@ -80,7 +76,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [heartAnimating, setHeartAnimating] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const volumeHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -101,13 +96,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   const handleVolumeLeave = useCallback(() => {
     volumeHideTimer.current = setTimeout(() => setShowVolumeSlider(false), 600);
   }, []);
-
-  // ── Heart button ───────────────────────────────────────────────────────
-  const handleToggleFavorite = useCallback(() => {
-    onToggleFavorite();
-    setHeartAnimating(true);
-    setTimeout(() => setHeartAnimating(false), 450);
-  }, [onToggleFavorite]);
 
   // ── Share button ───────────────────────────────────────────────────────
   const handleShare = useCallback(async () => {
@@ -235,8 +223,8 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           </button>
         </div>
 
-        {/* ── Center: Song info + Heart ── */}
-        <div className="flex items-center min-w-0 flex-1 px-1 sm:px-2">
+        {/* ── Center: Song info ── */}
+        <div className="flex items-center min-w-0 flex-1 px-2 sm:px-3">
           {isPlaying && !showSpinner && (
             <span className="flex items-end gap-[2px] h-3 mr-1.5 shrink-0" aria-hidden="true">
               <span className="w-[2px] bg-white/80 rounded-full bar-1" />
@@ -255,24 +243,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
               ? currentTrack.name
               : 'Select a track'}
           </p>
-
-          {/* Heart / Favorite button */}
-          {currentTrack && (
-            <button
-              onClick={handleToggleFavorite}
-              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-              aria-pressed={isFavorite}
-              title={isFavorite ? 'Unlike (L)' : 'Like (L)'}
-              className={`shrink-0 ml-1 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-200 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                isFavorite ? 'text-rose-400 hover:text-rose-300' : 'text-white/35 hover:text-white/70'
-              } ${heartAnimating ? 'heart-beat' : ''}`}
-            >
-              <Heart
-                className="w-3.5 h-3.5"
-                fill={isFavorite ? 'currentColor' : 'none'}
-              />
-            </button>
-          )}
         </div>
 
         {/* ── Right Feature Buttons: Ambient Mixer + Audio FX + Focus + Radio + Car Mode ── */}

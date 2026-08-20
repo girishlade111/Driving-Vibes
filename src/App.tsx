@@ -16,7 +16,6 @@ import { RadioStationModal } from './components/Radio/RadioStationModal';
 import { RainGlassCanvas } from './components/InteractiveCanvas/RainGlassCanvas';
 import { SpeedParticlesCanvas } from './components/InteractiveCanvas/SpeedParticlesCanvas';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
-import { useFavorites } from './hooks/useFavorites';
 import { useListeningStats } from './hooks/useListeningStats';
 import { useAmbientMixer } from './hooks/useAmbientMixer';
 import { useAudioEqualizer } from './hooks/useAudioEqualizer';
@@ -228,9 +227,6 @@ export const App: React.FC = () => {
     return () => { stopTracking(); };
   }, [stopTracking]);
 
-  // ── Favorites hook ────────────────────────────────────────────────────
-  const { favorites, toggleFavorite, isFavorite } = useFavorites();
-
   // ── Flagship Features ─────────────────────────────────────────────────
   const ambient = useAmbientMixer();
   const eq = useAudioEqualizer(audioRef);
@@ -310,10 +306,7 @@ export const App: React.FC = () => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-      if (e.code === 'KeyL' && currentTrack) {
-        e.preventDefault();
-        toggleFavorite(currentTrack.id);
-      } else if (e.code === 'KeyA') {
+      if (e.code === 'KeyA') {
         e.preventDefault();
         ambient.toggleMixer();
       } else if (e.code === 'KeyE') {
@@ -332,7 +325,7 @@ export const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTrack, toggleFavorite, ambient, eq, dj]);
+  }, [currentTrack, ambient, eq, dj]);
 
   // ── Sleep timer cancel shortcut wrapper ───────────────────────────────
   const handleSetSleepTimer = useCallback(
