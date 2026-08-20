@@ -139,12 +139,10 @@ function formatSleepRemaining(seconds: number): string {
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
-  isAnimated,
   blur,
   showWave,
   playerPosition,
   showNowPlaying,
-  onToggleAnimated,
   onBlurChange,
   onToggleWave,
   onPositionChange,
