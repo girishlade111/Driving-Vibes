@@ -21,7 +21,7 @@ export interface PlayerState {
 
 export interface TracksApiResponse {
   success: boolean;
-  source: 'backblaze' | 'demo' | 'demo-fallback';
+  source: 'cloudflare-r2' | 'unconfigured' | 'error';
   bucket?: string;
   message?: string;
   error?: string;
