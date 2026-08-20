@@ -1,16 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, PanelBottom } from 'lucide-react';
+import {
+  Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, PanelBottom,
+  Moon, BarChart2, Trash2, Palette,
+} from 'lucide-react';
 import { PlayerPosition } from '../../App';
+import { SleepTimerOption } from '../../hooks/useAudioPlayer';
+import { ListeningStats } from '../../hooks/useListeningStats';
 
 interface SettingsPanelProps {
   isAnimated: boolean;
   blur: number;
   showWave: boolean;
   playerPosition: PlayerPosition;
+  showNowPlaying: boolean;
   onToggleAnimated: () => void;
   onBlurChange: (value: number) => void;
   onToggleWave: () => void;
   onPositionChange: (pos: PlayerPosition) => void;
+  onToggleNowPlaying: () => void;
+  // Sleep timer
+  sleepTimer: SleepTimerOption;
+  sleepRemaining: number;
+  onSetSleepTimer: (minutes: SleepTimerOption) => void;
+  // Stats
+  stats: ListeningStats;
+  mostPlayed: { name: string; count: number } | null;
+  formatTime: (seconds: number) => string;
+  onResetStats: () => void;
+  // Accent color
+  accentColor: string;
+  onAccentChange: (color: string) => void;
 }
 
 /** Reusable inline toggle pill */
@@ -53,24 +72,12 @@ const SegmentedControl: React.FC<{
   onChange: (v: PlayerPosition) => void;
 }> = ({ value, onChange }) => {
   const options: { key: PlayerPosition; icon: React.ReactNode; label: string }[] = [
-    {
-      key: 'center',
-      icon: <AlignCenter className="w-3.5 h-3.5" />,
-      label: 'Center',
-    },
-    {
-      key: 'bottom',
-      icon: <PanelBottom className="w-3.5 h-3.5" />,
-      label: 'Bottom',
-    },
+    { key: 'center', icon: <AlignCenter className="w-3.5 h-3.5" />, label: 'Center' },
+    { key: 'bottom', icon: <PanelBottom className="w-3.5 h-3.5" />, label: 'Bottom' },
   ];
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Player position"
-      className="flex gap-1.5 w-full"
-    >
+    <div role="radiogroup" aria-label="Player position" className="flex gap-1.5 w-full">
       {options.map(({ key, icon, label }) => {
         const active = value === key;
         return (
@@ -97,15 +104,41 @@ const SegmentedControl: React.FC<{
   );
 };
 
+// ── Accent color presets ──────────────────────────────────────────────────
+const ACCENT_PRESETS: { label: string; h: number; s: string; l: string; preview: string }[] = [
+  { label: 'White',   h: 0,   s: '0%',   l: '100%', preview: '#ffffff' },
+  { label: 'Amber',   h: 38,  s: '95%',  l: '68%',  preview: '#f9c63a' },
+  { label: 'Cyan',    h: 187, s: '85%',  l: '62%',  preview: '#35d4e8' },
+  { label: 'Rose',    h: 348, s: '90%',  l: '65%',  preview: '#f96f88' },
+  { label: 'Violet',  h: 262, s: '80%',  l: '68%',  preview: '#b87cf9' },
+];
+
+function formatSleepRemaining(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isAnimated,
   blur,
   showWave,
   playerPosition,
+  showNowPlaying,
   onToggleAnimated,
   onBlurChange,
   onToggleWave,
   onPositionChange,
+  onToggleNowPlaying,
+  sleepTimer,
+  sleepRemaining,
+  onSetSleepTimer,
+  stats,
+  mostPlayed,
+  formatTime,
+  onResetStats,
+  accentColor,
+  onAccentChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -133,6 +166,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       document.removeEventListener('keydown', handleKey);
     };
   }, [isOpen]);
+
+  const sleepOptions: SleepTimerOption[] = [0, 15, 30, 45, 60];
 
   return (
     <>
@@ -168,8 +203,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           ref={panelRef}
           role="dialog"
           aria-label="App settings"
-          className="fixed top-[60px] right-4 w-56 glass-panel rounded-2xl shadow-2xl overflow-hidden animate-fadeIn"
-          style={{ zIndex: 34 }}
+          className="fixed top-[60px] right-4 w-60 glass-panel rounded-2xl shadow-2xl overflow-hidden animate-fadeIn overflow-y-auto custom-scrollbar"
+          style={{ zIndex: 34, maxHeight: 'calc(100dvh - 80px)' }}
         >
           <div className="px-4 py-4 space-y-4">
 
@@ -191,7 +226,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               />
             </div>
 
-            {/* Divider */}
             <div className="h-px bg-white/8" />
 
             {/* ── Blur slider ── */}
@@ -223,7 +257,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
             </div>
 
-            {/* Divider */}
             <div className="h-px bg-white/8" />
 
             {/* ── Music Wave ── */}
@@ -240,7 +273,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               />
             </div>
 
-            {/* Divider */}
+            <div className="h-px bg-white/8" />
+
+            {/* ── Now Playing Overlay ── */}
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35 mb-2.5">
+                Overlays
+              </p>
+              <ToggleRow
+                icon={<Sparkles className="w-3.5 h-3.5 text-white/45" />}
+                label="Now Playing"
+                active={showNowPlaying}
+                ariaLabel={showNowPlaying ? 'Hide now playing overlay' : 'Show now playing overlay'}
+                onClick={onToggleNowPlaying}
+              />
+            </div>
+
             <div className="h-px bg-white/8" />
 
             {/* ── Player Position ── */}
@@ -248,10 +296,126 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35 mb-2.5">
                 Player Position
               </p>
-              <SegmentedControl
-                value={playerPosition}
-                onChange={onPositionChange}
-              />
+              <SegmentedControl value={playerPosition} onChange={onPositionChange} />
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Theme Accent Color ── */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Palette className="w-3 h-3 text-white/35" />
+                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35">
+                  Accent Color
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {ACCENT_PRESETS.map((preset) => {
+                  const active = accentColor === preset.label;
+                  return (
+                    <button
+                      key={preset.label}
+                      onClick={() => onAccentChange(preset.label)}
+                      aria-label={`Accent color: ${preset.label}`}
+                      aria-pressed={active}
+                      title={preset.label}
+                      className={`w-7 h-7 rounded-full transition-all duration-200 ${
+                        active
+                          ? 'ring-2 ring-offset-1 ring-offset-transparent scale-110'
+                          : 'opacity-60 hover:opacity-90 hover:scale-105'
+                      }`}
+                      style={{
+                        backgroundColor: preset.preview,
+                        ringColor: preset.preview,
+                        boxShadow: active ? `0 0 0 2px ${preset.preview}55` : undefined,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Sleep Timer ── */}
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Moon className="w-3 h-3 text-white/35" />
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35">
+                    Sleep Timer
+                  </p>
+                </div>
+                {sleepTimer > 0 && sleepRemaining > 0 && (
+                  <span className="text-[10px] font-mono text-white/50 tabular-nums sleep-active">
+                    {formatSleepRemaining(sleepRemaining)}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {sleepOptions.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => onSetSleepTimer(m as SleepTimerOption)}
+                    aria-pressed={sleepTimer === m}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-200 ${
+                      sleepTimer === m
+                        ? 'bg-white/20 text-white border border-white/25'
+                        : 'bg-white/6 text-white/45 hover:bg-white/12 hover:text-white/70 border border-transparent'
+                    }`}
+                  >
+                    {m === 0 ? 'Off' : `${m}m`}
+                  </button>
+                ))}
+              </div>
+              {sleepTimer > 0 && (
+                <p className="mt-2 text-[10px] text-white/30">
+                  Music stops in {formatSleepRemaining(sleepRemaining)}
+                </p>
+              )}
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Listening Stats ── */}
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <BarChart2 className="w-3 h-3 text-white/35" />
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35">
+                    Stats
+                  </p>
+                </div>
+                <button
+                  onClick={onResetStats}
+                  aria-label="Reset listening stats"
+                  title="Reset stats"
+                  className="text-white/25 hover:text-white/50 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-white/45">Total listened</span>
+                  <span className="text-[11px] font-mono text-white/65 tabular-nums">
+                    {formatTime(stats.totalSeconds)}
+                  </span>
+                </div>
+                {mostPlayed && (
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] text-white/45 shrink-0">Most played</span>
+                    <span className="text-[11px] text-white/65 text-right truncate max-w-[120px]">
+                      {mostPlayed.name}
+                      <span className="text-white/35 ml-1">×{mostPlayed.count}</span>
+                    </span>
+                  </div>
+                )}
+                {stats.totalSeconds === 0 && (
+                  <p className="text-[10px] text-white/25 italic">No stats yet. Start listening!</p>
+                )}
+              </div>
             </div>
 
           </div>
