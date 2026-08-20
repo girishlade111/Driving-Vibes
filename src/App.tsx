@@ -289,12 +289,10 @@ export const App: React.FC = () => {
 
       {/* z-35 — Settings button + panel */}
       <SettingsPanel
-        isAnimated={isAnimated}
         blur={blur}
         showWave={showWave}
         playerPosition={playerPosition}
         showNowPlaying={showNowPlaying}
-        onToggleAnimated={toggleAnimation}
         onBlurChange={handleBlurChange}
         onToggleWave={toggleWave}
         onPositionChange={handlePositionChange}
