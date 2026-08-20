@@ -8,14 +8,25 @@ import { NowPlayingOverlay } from './components/NowPlayingOverlay/NowPlayingOver
 import { AmbientMixerModal } from './components/AmbientMixer/AmbientMixerModal';
 import { AudioFxModal } from './components/AudioFx/AudioFxModal';
 import { CarModeOverlay } from './components/CarMode/CarModeOverlay';
+import { AiDjModal } from './components/AiDj/AiDjModal';
+import { VirtualTripModal } from './components/Social/VirtualTripModal';
+import { PostcardModal } from './components/Postcard/PostcardModal';
+import { FocusTimerModal } from './components/Focus/FocusTimerModal';
+import { RadioStationModal } from './components/Radio/RadioStationModal';
+import { RainGlassCanvas } from './components/InteractiveCanvas/RainGlassCanvas';
+import { SpeedParticlesCanvas } from './components/InteractiveCanvas/SpeedParticlesCanvas';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useFavorites } from './hooks/useFavorites';
 import { useListeningStats } from './hooks/useListeningStats';
 import { useAmbientMixer } from './hooks/useAmbientMixer';
 import { useAudioEqualizer } from './hooks/useAudioEqualizer';
 import { useVoiceCommands } from './hooks/useVoiceCommands';
+import { useAiDjHost } from './hooks/useAiDjHost';
+import { useVirtualTrip } from './hooks/useVirtualTrip';
 import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from './types/backgroundPresets';
-import { AlertCircle } from 'lucide-react';
+import { RadioStation } from './types/radioStreams';
+import { Track } from './types/music';
+import { AlertCircle, Radio as RadioIcon } from 'lucide-react';
 
 export type PlayerPosition = 'center' | 'bottom';
 
@@ -28,11 +39,13 @@ const ACCENT_MAP: Record<string, { h: number; s: string; l: string }> = {
   Violet: { h: 262, s: '80%',  l: '68%'  },
 };
 
-const STORAGE_ACCENT_KEY     = 'driving_vibes_accent';
+const STORAGE_ACCENT_KEY      = 'driving_vibes_accent';
 const STORAGE_NOW_PLAYING_KEY = 'driving_vibes_show_now_playing';
-const STORAGE_BG_PRESET_KEY  = 'driving_vibes_bg_preset';
-const STORAGE_TOD_KEY        = 'driving_vibes_tod_mode';
-const STORAGE_CUSTOM_BG_KEY  = 'driving_vibes_custom_bg';
+const STORAGE_BG_PRESET_KEY   = 'driving_vibes_bg_preset';
+const STORAGE_TOD_KEY         = 'driving_vibes_tod_mode';
+const STORAGE_CUSTOM_BG_KEY   = 'driving_vibes_custom_bg';
+const STORAGE_RAIN_KEY        = 'driving_vibes_rain_glass';
+const STORAGE_SPEED_KEY       = 'driving_vibes_speed_particles';
 
 function loadAccent(): string {
   try {
@@ -98,8 +111,15 @@ export const App: React.FC = () => {
   const [timeOfDayMode, setTimeOfDayMode]   = useState<TimeOfDayMode>(() => loadTimeOfDay());
   const [customBgUrl, setCustomBgUrl]       = useState<string>(() => loadCustomBg());
 
-  // ── Car Mode state ────────────────────────────────────────────────────
+  // ── Interactive Screen Effects ────────────────────────────────────────
+  const [showRainGlass, setShowRainGlass]   = useState<boolean>(() => localStorage.getItem(STORAGE_RAIN_KEY) === 'true');
+  const [showSpeedParticles, setShowSpeedParticles] = useState<boolean>(() => localStorage.getItem(STORAGE_SPEED_KEY) === 'true');
+
+  // ── Modals State ──────────────────────────────────────────────────────
   const [isCarModeOpen, setIsCarModeOpen]   = useState<boolean>(false);
+  const [isPostcardOpen, setIsPostcardOpen] = useState<boolean>(false);
+  const [isFocusOpen, setIsFocusOpen]       = useState<boolean>(false);
+  const [isRadioOpen, setIsRadioOpen]       = useState<boolean>(false);
 
   // Apply accent color on mount
   useEffect(() => {
@@ -125,6 +145,22 @@ export const App: React.FC = () => {
   const handleSetCustomBgUrl = useCallback((url: string) => {
     setCustomBgUrl(url);
     try { localStorage.setItem(STORAGE_CUSTOM_BG_KEY, url); } catch { /* ignore */ }
+  }, []);
+
+  const toggleRainGlass = useCallback(() => {
+    setShowRainGlass((p) => {
+      const next = !p;
+      try { localStorage.setItem(STORAGE_RAIN_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const toggleSpeedParticles = useCallback(() => {
+    setShowSpeedParticles((p) => {
+      const next = !p;
+      try { localStorage.setItem(STORAGE_SPEED_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
   }, []);
 
   const handleBlurChange   = useCallback((v: number) => setBlur(v), []);
@@ -184,6 +220,7 @@ export const App: React.FC = () => {
     cancelSleepTimer,
     shareCurrentTrack,
     audioRef,
+    addCustomTracks,
   } = useAudioPlayer(startTracking, pauseTracking, resumeTracking);
 
   // Cleanup stats tracking on unmount
@@ -194,13 +231,62 @@ export const App: React.FC = () => {
   // ── Favorites hook ────────────────────────────────────────────────────
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
 
-  // ── Feature 1: Ambient Sound Mixer ────────────────────────────────────
+  // ── Flagship Features ─────────────────────────────────────────────────
   const ambient = useAmbientMixer();
-
-  // ── Feature 4: Audio Equalizer & FX ───────────────────────────────────
   const eq = useAudioEqualizer(audioRef);
+  const dj = useAiDjHost();
+  const trip = useVirtualTrip();
 
-  // ── Feature 3: Voice Commands ─────────────────────────────────────────
+  // Announce track when changed if AI DJ enabled
+  useEffect(() => {
+    if (currentTrack && dj.settings.isEnabled) {
+      dj.announceTrack(currentTrack.name, currentTrack.id);
+    }
+  }, [currentTrack, dj]);
+
+  // ── Local Audio Files Handler ─────────────────────────────────────────
+  const handleLocalFiles = useCallback((files: FileList | File[]) => {
+    const trackList: Track[] = Array.from(files).map((file) => ({
+      id: `local_${Date.now()}_${file.name}`,
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      url: URL.createObjectURL(file),
+      size: file.size,
+    }));
+    if (trackList.length > 0) {
+      addCustomTracks(trackList, true);
+    }
+  }, [addCustomTracks]);
+
+  // ── Radio Station Selector Handler ────────────────────────────────────
+  const handleSelectRadioStation = useCallback((station: RadioStation) => {
+    const radioTrack: Track = {
+      id: `radio_${station.id}`,
+      name: `${station.name} (${station.genre})`,
+      url: station.streamUrl,
+    };
+    addCustomTracks([radioTrack], true);
+  }, [addCustomTracks]);
+
+  // ── Global Window Drag-and-Drop for Audio Files ───────────────────────
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        handleLocalFiles(e.dataTransfer.files);
+      }
+    };
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, [handleLocalFiles]);
+
+  // ── Voice Commands ────────────────────────────────────────────────────
   const voice = useVoiceCommands({
     onPlay: () => {
       if (!isPlaying) togglePlay();
@@ -236,11 +322,17 @@ export const App: React.FC = () => {
       } else if (e.code === 'KeyC') {
         e.preventDefault();
         setIsCarModeOpen((p) => !p);
+      } else if (e.code === 'KeyP') {
+        e.preventDefault();
+        setIsFocusOpen((p) => !p);
+      } else if (e.code === 'KeyD') {
+        e.preventDefault();
+        dj.toggleDjModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTrack, toggleFavorite, ambient, eq]);
+  }, [currentTrack, toggleFavorite, ambient, eq, dj]);
 
   // ── Sleep timer cancel shortcut wrapper ───────────────────────────────
   const handleSetSleepTimer = useCallback(
@@ -286,6 +378,10 @@ export const App: React.FC = () => {
         timeOfDayMode={timeOfDayMode}
       />
 
+      {/* z-10 — Interactive Screen Canvases */}
+      <RainGlassCanvas isEnabled={showRainGlass} />
+      <SpeedParticlesCanvas isEnabled={showSpeedParticles} isPlaying={isPlaying} accentColor={accentColor} />
+
       {/* z-35 — Settings button + panel */}
       <SettingsPanel
         blur={blur}
@@ -296,6 +392,10 @@ export const App: React.FC = () => {
         onToggleWave={toggleWave}
         onPositionChange={handlePositionChange}
         onToggleNowPlaying={toggleNowPlaying}
+        showRainGlass={showRainGlass}
+        showSpeedParticles={showSpeedParticles}
+        onToggleRainGlass={toggleRainGlass}
+        onToggleSpeedParticles={toggleSpeedParticles}
         currentBgPreset={bgPreset}
         timeOfDayMode={timeOfDayMode}
         customBgUrl={customBgUrl}
@@ -314,6 +414,11 @@ export const App: React.FC = () => {
         onOpenAmbientMixer={ambient.openMixer}
         onOpenAudioFx={eq.openEq}
         onOpenCarMode={() => setIsCarModeOpen(true)}
+        onOpenDjModal={dj.openDjModal}
+        onOpenRadioModal={() => setIsRadioOpen(true)}
+        onOpenFocusModal={() => setIsFocusOpen(true)}
+        onOpenPostcardModal={() => setIsPostcardOpen(true)}
+        onOpenTripModal={trip.openTripModal}
       />
 
       {/* z-29 — Music wave visualizer */}
@@ -325,6 +430,17 @@ export const App: React.FC = () => {
         isPlaying={isPlaying}
         isEnabled={showNowPlaying}
       />
+
+      {/* AI DJ Live Announcement banner */}
+      {dj.currentAnnouncement && (
+        <aside
+          aria-live="polite"
+          className="fixed top-14 left-1/2 -translate-x-1/2 z-45 px-5 py-2 rounded-full glass-player border border-pink-400/40 text-pink-200 text-xs flex items-center space-x-2 animate-slideUp shadow-xl"
+        >
+          <RadioIcon className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+          <span className="font-medium">AI DJ: {dj.currentAnnouncement}</span>
+        </aside>
+      )}
 
       {/* z-40 — Error toast */}
       {error && (
@@ -397,9 +513,15 @@ export const App: React.FC = () => {
         onToggleAmbientMixer={ambient.toggleMixer}
         onToggleAudioFx={eq.toggleEq}
         onOpenCarMode={() => setIsCarModeOpen(true)}
+        onOpenRadioModal={() => setIsRadioOpen(true)}
+        onOpenFocusModal={() => setIsFocusOpen(true)}
+        onOpenPostcardModal={() => setIsPostcardOpen(true)}
+        onOpenTripModal={trip.openTripModal}
       />
 
-      {/* ── Feature 1: Ambient Sound Mixer Modal ── */}
+      {/* ── Feature Modals ── */}
+
+      {/* 1. Ambient Sound Mixer Modal */}
       <AmbientMixerModal
         isOpen={ambient.isMixerOpen}
         onClose={ambient.closeMixer}
@@ -415,7 +537,7 @@ export const App: React.FC = () => {
         onApplyPreset={ambient.applyPreset}
       />
 
-      {/* ── Feature 4: Audio Equalizer & FX Modal ── */}
+      {/* 2. Audio Equalizer & FX Modal */}
       <AudioFxModal
         isOpen={eq.isEqOpen}
         onClose={eq.closeEq}
@@ -432,7 +554,7 @@ export const App: React.FC = () => {
         onReset={eq.resetEq}
       />
 
-      {/* ── Feature 3: Car / Drive Mode Fullscreen HUD ── */}
+      {/* 3. Car / Drive Mode Fullscreen HUD */}
       <CarModeOverlay
         isOpen={isCarModeOpen}
         onClose={() => setIsCarModeOpen(false)}
@@ -457,6 +579,52 @@ export const App: React.FC = () => {
         isVoiceSupported={voice.isSupported}
         lastVoiceCommand={voice.lastCommand}
         onToggleVoice={voice.toggleListening}
+      />
+
+      {/* 4. AI DJ & Radio Host Modal */}
+      <AiDjModal
+        isOpen={dj.isDjModalOpen}
+        onClose={dj.closeDjModal}
+        settings={dj.settings}
+        isSpeaking={dj.isSpeaking}
+        onToggleMaster={dj.toggleDjMaster}
+        onSetPersona={dj.setPersona}
+        onUpdateSetting={dj.updateSetting}
+        onTestSpeak={dj.testSpeak}
+      />
+
+      {/* 5. Virtual Road Trip (Listen Together) */}
+      <VirtualTripModal
+        isOpen={trip.isTripModalOpen}
+        onClose={trip.closeTripModal}
+        tripId={trip.tripId}
+        travelerCount={trip.travelerCount}
+        copiedToast={trip.copiedToast}
+        onCopyTripLink={trip.copyTripLink}
+        onGenerateNewRoom={trip.generateNewRoom}
+      />
+
+      {/* 6. Postcard & Wallpaper Generator */}
+      <PostcardModal
+        isOpen={isPostcardOpen}
+        onClose={() => setIsPostcardOpen(false)}
+        currentTrack={currentTrack}
+        accentColor={accentColor}
+      />
+
+      {/* 7. Focus & Zen Productivity Suite */}
+      <FocusTimerModal
+        isOpen={isFocusOpen}
+        onClose={() => setIsFocusOpen(false)}
+      />
+
+      {/* 8. 24/7 Live Radio & Local Music Files */}
+      <RadioStationModal
+        isOpen={isRadioOpen}
+        onClose={() => setIsRadioOpen(false)}
+        currentTrack={currentTrack}
+        onSelectStation={handleSelectRadioStation}
+        onAddLocalFiles={handleLocalFiles}
       />
 
       {/* Backlink — bottom-left, minimal */}

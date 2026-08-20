@@ -629,6 +629,17 @@ export function useAudioPlayer(
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay, next, previous, closePlaylist, toggleShuffle, cycleRepeat, toggleMute, setVolume]);
 
+  const addCustomTracks = useCallback((newTracks: Track[], playImmediately = false) => {
+    setPlaylist((prev) => {
+      const updated = [...newTracks, ...prev];
+      playlistRef.current = updated;
+      if (playImmediately && newTracks.length > 0) {
+        setTimeout(() => goToIndex(0, true), 50);
+      }
+      return updated;
+    });
+  }, [goToIndex]);
+
   return {
     playlist,
     currentIndex,
@@ -663,5 +674,6 @@ export function useAudioPlayer(
     cancelSleepTimer,
     shareCurrentTrack,
     audioRef,
+    addCustomTracks,
   };
 }

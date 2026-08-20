@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Settings, Sparkles, AudioLines, AlignCenter, PanelBottom,
   Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, Film, SunMedium,
+  Radio, Timer, Camera, Users, Droplets, Zap,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 import { SleepTimerOption } from '../../hooks/useAudioPlayer';
@@ -17,6 +18,11 @@ interface SettingsPanelProps {
   onToggleWave: () => void;
   onPositionChange: (pos: PlayerPosition) => void;
   onToggleNowPlaying: () => void;
+  // Visual layers
+  showRainGlass: boolean;
+  showSpeedParticles: boolean;
+  onToggleRainGlass: () => void;
+  onToggleSpeedParticles: () => void;
   // Background presets
   currentBgPreset: BackgroundPreset;
   timeOfDayMode: TimeOfDayMode;
@@ -40,6 +46,11 @@ interface SettingsPanelProps {
   onOpenAmbientMixer?: () => void;
   onOpenAudioFx?: () => void;
   onOpenCarMode?: () => void;
+  onOpenDjModal?: () => void;
+  onOpenRadioModal?: () => void;
+  onOpenFocusModal?: () => void;
+  onOpenPostcardModal?: () => void;
+  onOpenTripModal?: () => void;
 }
 
 /** Reusable inline toggle pill */
@@ -147,6 +158,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onToggleWave,
   onPositionChange,
   onToggleNowPlaying,
+  showRainGlass,
+  showSpeedParticles,
+  onToggleRainGlass,
+  onToggleSpeedParticles,
   currentBgPreset,
   timeOfDayMode,
   customBgUrl,
@@ -165,6 +180,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onOpenAmbientMixer,
   onOpenAudioFx,
   onOpenCarMode,
+  onOpenDjModal,
+  onOpenRadioModal,
+  onOpenFocusModal,
+  onOpenPostcardModal,
+  onOpenTripModal,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [customInputUrl, setCustomInputUrl] = useState(customBgUrl);
@@ -230,7 +250,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           ref={panelRef}
           role="dialog"
           aria-label="App settings"
-          className="fixed top-[60px] right-4 w-72 glass-panel rounded-3xl shadow-2xl overflow-hidden animate-fadeIn overflow-y-auto custom-scrollbar border border-white/15"
+          className="fixed top-[60px] right-4 w-80 glass-panel rounded-3xl shadow-2xl overflow-hidden animate-fadeIn overflow-y-auto custom-scrollbar border border-white/15"
           style={{ zIndex: 34, maxHeight: 'calc(100dvh - 80px)' }}
         >
           <div className="px-4 py-4 space-y-4 text-white">
@@ -238,15 +258,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {/* ── Quick Feature Shortcuts ── */}
             <div>
               <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40 mb-2">
-                Quick Features
+                All App Features
               </p>
               <div className="grid grid-cols-3 gap-1.5">
                 {onOpenAmbientMixer && (
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      onOpenAmbientMixer();
-                    }}
+                    onClick={() => { setIsOpen(false); onOpenAmbientMixer(); }}
                     className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-sky-500/20 border border-white/8 hover:border-sky-400/30 text-white/70 hover:text-sky-300 transition-all text-center"
                   >
                     <CloudRain className="w-4 h-4 text-sky-400" />
@@ -256,10 +273,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
                 {onOpenAudioFx && (
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      onOpenAudioFx();
-                    }}
+                    onClick={() => { setIsOpen(false); onOpenAudioFx(); }}
                     className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/8 hover:border-amber-400/30 text-white/70 hover:text-amber-300 transition-all text-center"
                   >
                     <Sliders className="w-4 h-4 text-amber-400" />
@@ -267,18 +281,90 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </button>
                 )}
 
-                {onOpenCarMode && (
+                {onOpenFocusModal && (
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      onOpenCarMode();
-                    }}
+                    onClick={() => { setIsOpen(false); onOpenFocusModal(); }}
                     className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/8 hover:border-emerald-400/30 text-white/70 hover:text-emerald-300 transition-all text-center"
                   >
-                    <Car className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] font-medium">Car Mode</span>
+                    <Timer className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] font-medium">Focus (P)</span>
                   </button>
                 )}
+
+                {onOpenRadioModal && (
+                  <button
+                    onClick={() => { setIsOpen(false); onOpenRadioModal(); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/8 hover:border-rose-400/30 text-white/70 hover:text-rose-300 transition-all text-center"
+                  >
+                    <Radio className="w-4 h-4 text-rose-400" />
+                    <span className="text-[10px] font-medium">24/7 Radio</span>
+                  </button>
+                )}
+
+                {onOpenDjModal && (
+                  <button
+                    onClick={() => { setIsOpen(false); onOpenDjModal(); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-pink-500/20 border border-white/8 hover:border-pink-400/30 text-white/70 hover:text-pink-300 transition-all text-center"
+                  >
+                    <Sparkles className="w-4 h-4 text-pink-400" />
+                    <span className="text-[10px] font-medium">AI DJ Host</span>
+                  </button>
+                )}
+
+                {onOpenPostcardModal && (
+                  <button
+                    onClick={() => { setIsOpen(false); onOpenPostcardModal(); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 border border-white/8 hover:border-cyan-400/30 text-white/70 hover:text-cyan-300 transition-all text-center"
+                  >
+                    <Camera className="w-4 h-4 text-cyan-400" />
+                    <span className="text-[10px] font-medium">Postcard</span>
+                  </button>
+                )}
+
+                {onOpenTripModal && (
+                  <button
+                    onClick={() => { setIsOpen(false); onOpenTripModal(); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 border border-white/8 hover:border-indigo-400/30 text-white/70 hover:text-indigo-300 transition-all text-center"
+                  >
+                    <Users className="w-4 h-4 text-indigo-400" />
+                    <span className="text-[10px] font-medium">Sync Room</span>
+                  </button>
+                )}
+
+                {onOpenCarMode && (
+                  <button
+                    onClick={() => { setIsOpen(false); onOpenCarMode(); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/8 hover:border-emerald-400/30 text-white/70 hover:text-emerald-300 transition-all text-center col-span-2"
+                  >
+                    <Car className="w-4 h-4 text-amber-400" />
+                    <span className="text-[10px] font-medium">Car Mode HUD (C)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Visual Layers (Interactive Rain & Speed Particles) ── */}
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40 mb-2.5">
+                Interactive Visual Effects
+              </p>
+              <div className="space-y-2">
+                <ToggleRow
+                  icon={<Droplets className="w-3.5 h-3.5 text-sky-300" />}
+                  label="Rain on Windshield (Wiper)"
+                  active={showRainGlass}
+                  ariaLabel="Toggle windshield rain effect"
+                  onClick={onToggleRainGlass}
+                />
+                <ToggleRow
+                  icon={<Zap className="w-3.5 h-3.5 text-amber-300" />}
+                  label="3D Neon Speed Particles"
+                  active={showSpeedParticles}
+                  ariaLabel="Toggle 3D speed particles"
+                  onClick={onToggleSpeedParticles}
+                />
               </div>
             </div>
 
@@ -394,10 +480,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   background: `linear-gradient(to right, rgba(255,255,255,0.6) ${blur * 5}%, rgba(255,255,255,0.12) ${blur * 5}%)`,
                 }}
               />
-              <div className="flex justify-between mt-1">
-                <span className="text-[9px] text-white/20">None</span>
-                <span className="text-[9px] text-white/20">Max</span>
-              </div>
             </div>
 
             <div className="h-px bg-white/8" />
@@ -512,11 +594,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </button>
                 ))}
               </div>
-              {sleepTimer > 0 && (
-                <p className="mt-2 text-[10px] text-white/30">
-                  Music stops in {formatSleepRemaining(sleepRemaining)}
-                </p>
-              )}
             </div>
 
             <div className="h-px bg-white/8" />
@@ -555,9 +632,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       <span className="text-white/35 ml-1">×{mostPlayed.count}</span>
                     </span>
                   </div>
-                )}
-                {stats.totalSeconds === 0 && (
-                  <p className="text-[10px] text-white/25 italic">No stats yet. Start listening!</p>
                 )}
               </div>
             </div>
