@@ -83,7 +83,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   // bottom: fixed to bottom with safe-area padding
   const positionClass =
     playerPosition === 'bottom'
-      ? 'fixed bottom-safe left-1/2 -translate-x-1/2 mb-5'
+      ? 'fixed bottom-player-safe left-1/2 -translate-x-1/2'
       : 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
 
   return (
