@@ -27,6 +27,7 @@ export const Background: React.FC<BackgroundProps> = ({
   const [staticLoaded, setStaticLoaded] = useState(false);
   const [gifLoaded, setGifLoaded] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Preload GIF if in classic image mode
@@ -41,6 +42,7 @@ export const Background: React.FC<BackgroundProps> = ({
   // Restart video if preset changes
   useEffect(() => {
     setVideoLoaded(false);
+    setVideoError(false);
     if (videoRef.current) {
       videoRef.current.load();
       videoRef.current.play().catch(() => {/* ignore autoplay restrictions */});
@@ -83,7 +85,7 @@ export const Background: React.FC<BackgroundProps> = ({
       aria-hidden="true"
     >
       {/* ── Layer: Video Background ── */}
-      {isVideo && videoSrc ? (
+      {isVideo && videoSrc && !videoError ? (
         <video
           ref={videoRef}
           src={videoSrc}
@@ -92,6 +94,10 @@ export const Background: React.FC<BackgroundProps> = ({
           muted
           playsInline
           onLoadedData={() => setVideoLoaded(true)}
+          onError={() => {
+            console.warn('Video background failed to load, falling back to artwork.');
+            setVideoError(true);
+          }}
           className={`absolute inset-0 w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-1000 ease-out ${
             videoLoaded ? 'opacity-100' : 'opacity-0'
           }`}

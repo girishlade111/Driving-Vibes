@@ -42,6 +42,19 @@ export function useAiDjHost() {
   const lastAnnouncedTrackId = useRef<string | null>(null);
   const announcementTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Load and cache voices
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const loadVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v && v.length > 0) setVoices(v);
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
   // Save to localStorage
   useEffect(() => {
     try {
@@ -105,11 +118,11 @@ export function useAiDjHost() {
       utterance.rate = settings.rate;
       utterance.pitch = settings.pitch;
 
-      // Try selecting a calm English voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(
-        (v) => (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Daniel') || v.name.includes('Samantha') || v.name.includes('Alex')))
-      ) || voices.find((v) => v.lang.startsWith('en'));
+      // Select natural or calm English voice
+      const currentVoices = voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+      const preferredVoice = currentVoices.find(
+        (v) => (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Daniel') || v.name.includes('Samantha') || v.name.includes('Alex') || v.name.includes('Jenny') || v.name.includes('Guy')))
+      ) || currentVoices.find((v) => v.lang.startsWith('en'));
 
       if (preferredVoice) {
         utterance.voice = preferredVoice;
@@ -130,7 +143,7 @@ export function useAiDjHost() {
 
       window.speechSynthesis.speak(utterance);
     }, 450);
-  }, [playRadioChime, settings.volume, settings.rate, settings.pitch]);
+  }, [playRadioChime, settings.volume, settings.rate, settings.pitch, voices]);
 
   // Generate DJ announcement for track
   const announceTrack = useCallback((trackName: string, trackId: string) => {

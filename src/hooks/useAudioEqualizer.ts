@@ -124,9 +124,10 @@ export function useAudioEqualizer(audioElementRef: React.RefObject<HTMLAudioElem
     const audio = audioElementRef.current;
     if (!audio) return;
 
-    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-      try {
+    try {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
         const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return;
         const ctx = new AudioCtx();
         audioCtxRef.current = ctx;
 
@@ -177,13 +178,13 @@ export function useAudioEqualizer(audioElementRef: React.RefObject<HTMLAudioElem
             treble.connect(ctx.destination);
           }
         }
-      } catch (err) {
-        console.warn('Web Audio EQ initialization fallback:', err);
       }
-    }
 
-    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Web Audio EQ initialization fallback:', err);
     }
   }, [audioElementRef, eqState.bass, eqState.mid, eqState.treble]);
 

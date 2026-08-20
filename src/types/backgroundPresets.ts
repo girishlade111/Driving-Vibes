@@ -23,6 +23,19 @@ export interface BackgroundPreset {
 
 export const BACKGROUND_PRESETS: BackgroundPreset[] = [
   {
+    id: 'classic_cinematic',
+    name: 'Classic Driving Art',
+    type: 'image',
+    tag: 'Original Art',
+    thumbnail: '🚗',
+    imageSrc: {
+      desktop: '/backgrounds/desktop-background.png',
+      mobile: '/backgrounds/mobile-background.png',
+      desktopGif: '/backgrounds/desktop-background.gif',
+      mobileGif: '/backgrounds/mobile-background.gif',
+    },
+  },
+  {
     id: 'tokyo_night',
     name: 'Tokyo Neon Highway',
     type: 'video',
@@ -69,18 +82,5 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
       mobile: 'https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-futuristic-neon-lights-42999-large.mp4',
     },
     overlayTint: 'rgba(15, 0, 25, 0.35)',
-  },
-  {
-    id: 'classic_cinematic',
-    name: 'Classic Driving Art',
-    type: 'image',
-    tag: 'Original Art',
-    thumbnail: '🚗',
-    imageSrc: {
-      desktop: '/backgrounds/desktop-background.png',
-      mobile: '/backgrounds/mobile-background.png',
-      desktopGif: '/backgrounds/desktop-background.gif',
-      mobileGif: '/backgrounds/mobile-background.gif',
-    },
   },
 ];
