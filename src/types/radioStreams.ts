@@ -33,11 +33,11 @@ export const RADIO_STATIONS: RadioStation[] = [
     bitrate: '192 kbps',
   },
   {
-    id: 'night_jazz',
-    name: 'Smooth Night Jazz FM',
-    genre: 'Midnight Jazz',
+    id: 'night_chillout',
+    name: 'Midnight Chillout FM',
+    genre: 'Chillout & Lounge',
     icon: '🎷',
-    streamUrl: 'https://stream.zeno.fm/0r0xa792kwzuv',
-    bitrate: '128 kbps',
+    streamUrl: 'https://streams.ilovemusic.de/iloveradio10.mp3',
+    bitrate: '192 kbps',
   },
 ];

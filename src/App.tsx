@@ -234,11 +234,13 @@ export const App: React.FC = () => {
   const trip = useVirtualTrip();
 
   // Announce track when changed if AI DJ enabled
+  const announceTrackFn = dj.announceTrack;
+  const isDjEnabled = dj.settings.isEnabled;
   useEffect(() => {
-    if (currentTrack && dj.settings.isEnabled) {
-      dj.announceTrack(currentTrack.name, currentTrack.id);
+    if (currentTrack && isDjEnabled) {
+      announceTrackFn(currentTrack.name, currentTrack.id);
     }
-  }, [currentTrack, dj]);
+  }, [currentTrack?.id, isDjEnabled, announceTrackFn]);
 
   // ── Local Audio Files Handler ─────────────────────────────────────────
   const handleLocalFiles = useCallback((files: FileList | File[]) => {
