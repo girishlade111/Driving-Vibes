@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Track } from '../types/music';
+import { Track, DEFAULT_TRACKS } from '../types/music';
 
 const STORAGE_PLAYLIST_KEY = 'driving_vibes_custom_order';
 const STORAGE_VOLUME_KEY   = 'driving_vibes_volume';
@@ -273,21 +273,34 @@ export function useAudioPlayer(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goToIndex, getNextIndex]);
 
-  // ── Fetch tracks from API on mount ────────────────────────────────────
+  // ── Fetch tracks from API on mount (with reliable fallback) ───────────
   useEffect(() => {
     let isMounted = true;
 
     async function loadTracks() {
       setIsTracksLoading(true);
       try {
-        const res = await fetch('/api/tracks');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        let fetchedTracks: Track[] = [];
+        try {
+          const res = await fetch('/api/tracks');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.tracks && data.tracks.length > 0) {
+              fetchedTracks = data.tracks;
+              setDataSource(data.source || 'cloudflare-r2');
+            }
+          }
+        } catch {
+          // Backend may be offline or in dev standalone mode
+        }
+
+        // If no tracks from R2, load curated high-quality default driving playlist
+        if (fetchedTracks.length === 0) {
+          fetchedTracks = [...DEFAULT_TRACKS];
+          setDataSource('built-in');
+        }
 
         if (!isMounted) return;
-
-        let fetchedTracks: Track[] = data.tracks || [];
-        setDataSource(data.source || 'unknown');
 
         // Re-apply saved playlist order if available
         const savedOrderJson = localStorage.getItem(STORAGE_PLAYLIST_KEY);
@@ -333,7 +346,14 @@ export function useAudioPlayer(
       } catch (err) {
         console.error('Failed to load tracks:', err);
         if (isMounted) {
-          setError('Music catalog temporarily unavailable.');
+          // Graceful fallback to default tracks
+          playlistRef.current = DEFAULT_TRACKS;
+          setPlaylist(DEFAULT_TRACKS);
+          if (DEFAULT_TRACKS.length > 0 && audioRef.current) {
+            currentIndexRef.current = 0;
+            setCurrentIndex(0);
+            audioRef.current.src = DEFAULT_TRACKS[0].url;
+          }
         }
       } finally {
         if (isMounted) {
