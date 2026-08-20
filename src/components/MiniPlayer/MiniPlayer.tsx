@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RepeatMode } from '../../hooks/useAudioPlayer';
+import { PlayerPosition } from '../../App';
 
 interface MiniPlayerProps {
   currentTrack: Track | null;
@@ -16,6 +17,7 @@ interface MiniPlayerProps {
   isPlaylistOpen: boolean;
   isShuffle: boolean;
   repeatMode: RepeatMode;
+  playerPosition: PlayerPosition;
   onTogglePlay: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -35,6 +37,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   isPlaylistOpen,
   isShuffle,
   repeatMode,
+  playerPosition,
   onTogglePlay,
   onPrevious,
   onNext,
@@ -75,10 +78,18 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
       extra,
     ].join(' ');
 
+  // ── Position classes ──────────────────────────────────────────────────
+  // center: fixed to exact middle of viewport (default)
+  // bottom: fixed to bottom with safe-area padding
+  const positionClass =
+    playerPosition === 'bottom'
+      ? 'fixed bottom-safe left-1/2 -translate-x-1/2 mb-5'
+      : 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
+
   return (
     <nav
       aria-label="Audio player controls"
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100vw-24px)] sm:w-[480px] md:w-[520px] select-none animate-fadeIn"
+      className={`${positionClass} z-30 w-[calc(100vw-24px)] sm:w-[480px] md:w-[520px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
     >
       <div className="glass-player relative flex items-center px-2.5 sm:px-3.5 py-2.5 rounded-full overflow-hidden group shadow-2xl">
 

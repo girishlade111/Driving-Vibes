@@ -7,15 +7,19 @@ import { PlaylistPanel } from './components/Playlist/PlaylistPanel';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { AlertCircle } from 'lucide-react';
 
+export type PlayerPosition = 'center' | 'bottom';
+
 export const App: React.FC = () => {
   // ── Background / visual settings ─────────────────────────────────────
-  const [isAnimated, setIsAnimated]   = useState<boolean>(false);
-  const [blur, setBlur]               = useState<number>(0);
-  const [showWave, setShowWave]       = useState<boolean>(true);
+  const [isAnimated, setIsAnimated]       = useState<boolean>(false);
+  const [blur, setBlur]                   = useState<number>(0);
+  const [showWave, setShowWave]           = useState<boolean>(true);
+  const [playerPosition, setPlayerPosition] = useState<PlayerPosition>('center');
 
-  const toggleAnimation = useCallback(() => setIsAnimated((p) => !p), []);
-  const handleBlurChange = useCallback((v: number) => setBlur(v), []);
-  const toggleWave = useCallback(() => setShowWave((p) => !p), []);
+  const toggleAnimation    = useCallback(() => setIsAnimated((p) => !p), []);
+  const handleBlurChange   = useCallback((v: number) => setBlur(v), []);
+  const toggleWave         = useCallback(() => setShowWave((p) => !p), []);
+  const handlePositionChange = useCallback((pos: PlayerPosition) => setPlayerPosition(pos), []);
 
   // ── Audio player ──────────────────────────────────────────────────────
   const {
@@ -60,9 +64,11 @@ export const App: React.FC = () => {
         isAnimated={isAnimated}
         blur={blur}
         showWave={showWave}
+        playerPosition={playerPosition}
         onToggleAnimated={toggleAnimation}
         onBlurChange={handleBlurChange}
         onToggleWave={toggleWave}
+        onPositionChange={handlePositionChange}
       />
 
       {/* z-29 — Music wave visualizer (above background, below player) */}
@@ -107,6 +113,7 @@ export const App: React.FC = () => {
         isPlaylistOpen={isPlaylistOpen}
         isShuffle={isShuffle}
         repeatMode={repeatMode}
+        playerPosition={playerPosition}
         onTogglePlay={togglePlay}
         onPrevious={previous}
         onNext={next}

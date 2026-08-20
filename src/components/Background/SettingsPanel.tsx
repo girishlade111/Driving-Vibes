@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, Sparkles, ImageIcon, AudioLines } from 'lucide-react';
+import { Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, AlignBottom } from 'lucide-react';
+import { PlayerPosition } from '../../App';
 
 interface SettingsPanelProps {
   isAnimated: boolean;
   blur: number;
   showWave: boolean;
+  playerPosition: PlayerPosition;
   onToggleAnimated: () => void;
   onBlurChange: (value: number) => void;
   onToggleWave: () => void;
+  onPositionChange: (pos: PlayerPosition) => void;
 }
 
 /** Reusable inline toggle pill */
@@ -44,13 +47,65 @@ const ToggleRow: React.FC<{
   </button>
 );
 
+/** Two-option segmented control */
+const SegmentedControl: React.FC<{
+  value: PlayerPosition;
+  onChange: (v: PlayerPosition) => void;
+}> = ({ value, onChange }) => {
+  const options: { key: PlayerPosition; icon: React.ReactNode; label: string }[] = [
+    {
+      key: 'center',
+      icon: <AlignCenter className="w-3.5 h-3.5" />,
+      label: 'Center',
+    },
+    {
+      key: 'bottom',
+      icon: <AlignBottom className="w-3.5 h-3.5" />,
+      label: 'Bottom',
+    },
+  ];
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Player position"
+      className="flex gap-1.5 w-full"
+    >
+      {options.map(({ key, icon, label }) => {
+        const active = value === key;
+        return (
+          <button
+            key={key}
+            role="radio"
+            aria-checked={active}
+            aria-label={`Player position: ${label}`}
+            onClick={() => onChange(key)}
+            className={[
+              'flex-1 flex flex-col items-center gap-1 py-2 rounded-xl border transition-all duration-200',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
+              active
+                ? 'bg-white/18 border-white/25 text-white shadow-inner'
+                : 'bg-white/5 border-white/8 text-white/45 hover:bg-white/10 hover:text-white/70 hover:border-white/15',
+            ].join(' ')}
+          >
+            {icon}
+            <span className="text-[10px] font-medium tracking-wide">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isAnimated,
   blur,
   showWave,
+  playerPosition,
   onToggleAnimated,
   onBlurChange,
   onToggleWave,
+  onPositionChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -182,6 +237,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 active={showWave}
                 ariaLabel={showWave ? 'Hide music wave' : 'Show music wave'}
                 onClick={onToggleWave}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-white/8" />
+
+            {/* ── Player Position ── */}
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35 mb-2.5">
+                Player Position
+              </p>
+              <SegmentedControl
+                value={playerPosition}
+                onChange={onPositionChange}
               />
             </div>
 
