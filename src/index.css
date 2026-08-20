@@ -91,12 +91,16 @@
 }
 
 /* ── Safe Area Utilities ─────────────────────────────────────────────────── */
-/*
- * bottom-safe: positions an element above the safe-area (home indicator, etc.)
- * Used by the MiniPlayer to stay comfortably reachable on all devices.
+/* bottom-safe: positions an element above the safe-area (home indicator, etc.)
+ * Used by the MiniPlayer when positioned at bottom.
  */
 .bottom-safe {
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+/* bottom-player-safe: extra generous bottom padding for the MiniPlayer pill */
+.bottom-player-safe {
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Equalizer Wave Bars (playing indicator) ────────────────────────────── */
