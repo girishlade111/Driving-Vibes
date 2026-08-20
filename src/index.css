@@ -12,6 +12,14 @@
     --anim-fast: 150ms;
     --anim-normal: 250ms;
     --anim-slow: 400ms;
+
+    /* ── Accent color (theme) ── default: white */
+    --accent-h: 0;
+    --accent-s: 0%;
+    --accent-l: 100%;
+    --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    --accent-dim: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.55);
+    --accent-glow: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.18);
   }
 
   html,
@@ -91,14 +99,10 @@
 }
 
 /* ── Safe Area Utilities ─────────────────────────────────────────────────── */
-/* bottom-safe: positions an element above the safe-area (home indicator, etc.)
- * Used by the MiniPlayer when positioned at bottom.
- */
 .bottom-safe {
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
 }
 
-/* bottom-player-safe: extra generous bottom padding for the MiniPlayer pill */
 .bottom-player-safe {
   bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
@@ -129,10 +133,6 @@
   to   { opacity: 1; }
 }
 
-/*
- * slideUp: the playlist panel gracefully appears from below.
- * Combines a subtle upward motion with a fade for polish.
- */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -144,6 +144,50 @@
   }
 }
 
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.96);
+  }
+}
+
+@keyframes slideInTop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideOutTop {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn var(--anim-normal, 250ms) ease-out both;
 }
@@ -152,28 +196,30 @@
   animation: slideUp var(--anim-normal, 250ms) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.animate-slideInLeft {
+  animation: slideInLeft 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slideOutLeft {
+  animation: slideOutLeft 280ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.animate-slideInTop {
+  animation: slideInTop 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* ── Music Wave bar animation ────────────────────────────────────────────── */
-/*
- * Each bar sets --min-h and --max-h as inline CSS custom properties.
- * The keyframe animates between those values, so every bar has its own
- * unique height range without needing separate @keyframes per bar.
- */
 @keyframes waveBar {
   from { height: var(--min-h, 4px);  }
   to   { height: var(--max-h, 48px); }
 }
 
 /* ── Touch Action Utilities ─────────────────────────────────────────────── */
-/* Prevents scroll interference during drag on mobile */
 .touch-none {
   touch-action: none;
 }
 
 /* ── Animation Toggle — active glow pulse ──────────────────────────────── */
-/*
- * When the animated background is active the toggle button gets a subtle
- * pulsing box-shadow to hint that something "live" is happening.
- */
 @keyframes toggleGlow {
   0%, 100% { box-shadow: 0 0 0 0px rgba(255, 255, 255, 0.0), 0 4px 20px rgba(0,0,0,0.5); }
   50%       { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 4px 20px rgba(0,0,0,0.5); }
@@ -194,7 +240,6 @@
   cursor: pointer;
 }
 
-/* Thumb — Chrome / Safari */
 .blur-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -212,7 +257,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* Thumb — Firefox */
 .blur-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
@@ -221,4 +265,92 @@
   background: rgba(255, 255, 255, 0.90);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
+}
+
+/* ── Volume slider ──────────────────────────────────────────────────────── */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  border: none;
+  height: 3px;
+  border-radius: 9999px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent, rgba(255, 255, 255, 0.95));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent, rgba(255, 255, 255, 0.95));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+/* ── Sleep timer pulse ──────────────────────────────────────────────────── */
+@keyframes sleepPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+.sleep-active {
+  animation: sleepPulse 2s ease-in-out infinite;
+}
+
+/* ── Heart beat animation ────────────────────────────────────────────────── */
+@keyframes heartBeat {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35); }
+  60%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+.heart-beat {
+  animation: heartBeat 0.4s ease-out;
+}
+
+/* ── Accent-colored accent dot / progress ──────────────────────────────── */
+.accent-bg {
+  background-color: var(--accent);
+}
+
+.accent-text {
+  color: var(--accent);
+}
+
+/* ── Toast notification ─────────────────────────────────────────────────── */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.96); }
+}
+
+.toast-enter {
+  animation: toastIn 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.toast-exit {
+  animation: toastOut 220ms ease-in both;
 }
