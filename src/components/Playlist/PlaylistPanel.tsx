@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, GripVertical, Play, Volume2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X, GripVertical, Play, Volume2, Heart, Search, BarChart2 } from 'lucide-react';
 import { Track } from '../../types/music';
+import { TrackStat } from '../../hooks/useListeningStats';
 
 interface PlaylistPanelProps {
   isOpen: boolean;
@@ -8,9 +9,12 @@ interface PlaylistPanelProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   isTracksLoading: boolean;
+  favorites: Set<string>;
+  getTrackStat: (trackId: string) => TrackStat;
   onClose: () => void;
   onSelectTrack: (index: number) => void;
   onReorder: (newPlaylist: Track[]) => void;
+  onToggleFavorite: (trackId: string) => void;
 }
 
 export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
@@ -19,24 +23,55 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   currentTrack,
   isPlaying,
   isTracksLoading,
+  favorites,
+  getTrackStat,
   onClose,
   onSelectTrack,
   onReorder,
+  onToggleFavorite,
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFavesOnly, setShowFavesOnly] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const touchStartY = useRef<number>(0);
   const panelRef = useRef<HTMLElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (showSearch && searchQuery) {
+          setSearchQuery('');
+        } else if (showSearch) {
+          setShowSearch(false);
+        } else {
+          onClose();
+        }
+      }
+      // '/' to open search
+      if (e.key === '/' && !showSearch) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+          e.preventDefault();
+          setShowSearch(true);
+        }
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showSearch, searchQuery]);
+
+  // Focus search input when it opens
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
 
   // Focus trap: focus the panel when opened
   useEffect(() => {
@@ -45,7 +80,24 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     }
   }, [isOpen]);
 
+  // Reset search/filter when closing
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+      setShowSearch(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  // ── Filtered playlist ─────────────────────────────────────────────────
+  const filteredPlaylist = playlist
+    .map((track, originalIndex) => ({ track, originalIndex }))
+    .filter(({ track }) => {
+      if (showFavesOnly && !favorites.has(track.id)) return false;
+      if (searchQuery && !track.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    });
 
   // ── HTML5 Drag and Drop ──────────────────────────────────────────────────
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
@@ -61,9 +113,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     setDragOverIndex(index);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetOriginalIndex: number) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === targetIndex) {
+    if (draggedIndex === null || draggedIndex === targetOriginalIndex) {
       setDraggedIndex(null);
       setDragOverIndex(null);
       return;
@@ -71,7 +123,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
     const updated = [...playlist];
     const [moved] = updated.splice(draggedIndex, 1);
-    updated.splice(targetIndex, 0, moved);
+    updated.splice(targetOriginalIndex, 0, moved);
 
     onReorder(updated);
     setDraggedIndex(null);
@@ -99,6 +151,13 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     }
   };
 
+  const handleFaveClick = useCallback((e: React.MouseEvent, trackId: string) => {
+    e.stopPropagation();
+    onToggleFavorite(trackId);
+  }, [onToggleFavorite]);
+
+  const favCount = playlist.filter(t => favorites.has(t.id)).length;
+
   return (
     <>
       {/* ── Backdrop — z-20 ─────────────────────────────────────────────── */}
@@ -117,7 +176,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         tabIndex={-1}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        className="fixed inset-x-3 sm:left-1/2 sm:-translate-x-1/2 sm:inset-x-auto sm:w-[440px] md:w-[480px] max-h-[44vh] flex flex-col glass-panel rounded-2xl shadow-2xl overflow-hidden animate-slideUp focus:outline-none"
+        className="fixed inset-x-3 sm:left-1/2 sm:-translate-x-1/2 sm:inset-x-auto sm:w-[460px] md:w-[500px] max-h-[48vh] flex flex-col glass-panel rounded-2xl shadow-2xl overflow-hidden animate-slideUp focus:outline-none"
         style={{ zIndex: 25, bottom: 'calc(50vh + 34px)' }}
       >
         {/* Mobile drag handle */}
@@ -126,22 +185,97 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         </div>
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-white/8 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-[11px] font-semibold tracking-[0.12em] text-white/70 uppercase">
-              Playlist
-            </h2>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/50 font-mono tabular-nums">
-              {playlist.length}
-            </span>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close playlist"
-            className="w-7 h-7 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <header className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-white/8 shrink-0">
+          {!showSearch ? (
+            <>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[11px] font-semibold tracking-[0.12em] text-white/70 uppercase">
+                  Playlist
+                </h2>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/50 font-mono tabular-nums">
+                  {filteredPlaylist.length}
+                </span>
+
+                {/* Faves filter toggle */}
+                <button
+                  onClick={() => setShowFavesOnly(p => !p)}
+                  aria-pressed={showFavesOnly}
+                  title={showFavesOnly ? 'Show all tracks' : 'Show favorites only (F)'}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+                    showFavesOnly
+                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/30'
+                      : 'bg-white/8 text-white/40 hover:text-white/60 border border-transparent'
+                  }`}
+                >
+                  <Heart className="w-2.5 h-2.5" fill={showFavesOnly ? 'currentColor' : 'none'} />
+                  {favCount > 0 && <span>{favCount}</span>}
+                </button>
+
+                {/* Stats toggle */}
+                <button
+                  onClick={() => setShowStats(p => !p)}
+                  aria-pressed={showStats}
+                  title="Show play counts"
+                  className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] transition-all duration-200 ${
+                    showStats ? 'text-white/80 bg-white/15' : 'text-white/30 hover:text-white/50'
+                  }`}
+                >
+                  <BarChart2 className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {/* Search button */}
+                <button
+                  onClick={() => setShowSearch(true)}
+                  aria-label="Search tracks"
+                  title="Search (/)"
+                  className="w-7 h-7 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={onClose}
+                  aria-label="Close playlist"
+                  className="w-7 h-7 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </>
+          ) : (
+            /* ── Search input row ── */
+            <div className="flex items-center gap-2 w-full">
+              <Search className="w-3.5 h-3.5 text-white/40 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search tracks…"
+                aria-label="Search tracks"
+                className="flex-1 bg-transparent text-[13px] text-white/85 placeholder-white/30 outline-none border-none"
+                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                  className="text-white/40 hover:text-white/70 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+              <button
+                onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                aria-label="Close search"
+                className="w-7 h-7 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </header>
 
         {/* ── Track List ─────────────────────────────────────────────────── */}
@@ -154,30 +288,32 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             <div className="py-12 text-center text-white/30 text-xs tracking-wide">
               Loading tracks…
             </div>
-          ) : playlist.length === 0 ? (
+          ) : filteredPlaylist.length === 0 ? (
             <div className="py-12 text-center text-white/30 text-xs tracking-wide">
-              No music available.
+              {searchQuery ? 'No tracks match your search.' : showFavesOnly ? 'No favorites yet. ❤️' : 'No music available.'}
             </div>
           ) : (
-            playlist.map((track, index) => {
+            filteredPlaylist.map(({ track, originalIndex }) => {
               const isActive = currentTrack?.id === track.id;
-              const isDragging = draggedIndex === index;
-              const isDropTarget = dragOverIndex === index && draggedIndex !== index;
+              const isDragging = draggedIndex === originalIndex;
+              const isDropTarget = dragOverIndex === originalIndex && draggedIndex !== originalIndex;
+              const isFav = favorites.has(track.id);
+              const stat = getTrackStat(track.id);
 
               return (
                 <div
                   key={track.id}
                   role="listitem"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
+                  draggable={!searchQuery && !showFavesOnly}
+                  onDragStart={(e) => handleDragStart(e, originalIndex)}
+                  onDragOver={(e) => handleDragOver(e, originalIndex)}
+                  onDrop={(e) => handleDrop(e, originalIndex)}
                   onDragEnd={handleDragEnd}
                   onDragLeave={handleDragLeave}
-                  onClick={() => onSelectTrack(index)}
-                  aria-label={`${track.name}${isActive ? ', currently playing' : ''}`}
+                  onClick={() => onSelectTrack(originalIndex)}
+                  aria-label={`${track.name}${isActive ? ', currently playing' : ''}${isFav ? ', favorited' : ''}`}
                   className={[
-                    'group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer select-none',
+                    'group relative flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer select-none',
                     'transition-all duration-150 ease-out',
                     isActive
                       ? 'bg-white/12 text-white'
@@ -188,14 +324,16 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     .filter(Boolean)
                     .join(' ')}
                 >
-                  {/* Drag handle — click-blocked so it doesn't trigger track selection */}
-                  <div
-                    className="shrink-0 cursor-grab active:cursor-grabbing text-white/20 group-hover:text-white/40 transition-colors touch-none"
-                    onClick={(e) => e.stopPropagation()}
-                    aria-hidden="true"
-                  >
-                    <GripVertical className="w-3.5 h-3.5" />
-                  </div>
+                  {/* Drag handle */}
+                  {!searchQuery && !showFavesOnly && (
+                    <div
+                      className="shrink-0 cursor-grab active:cursor-grabbing text-white/20 group-hover:text-white/40 transition-colors touch-none"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-hidden="true"
+                    >
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </div>
+                  )}
 
                   {/* Track number */}
                   <span
@@ -204,7 +342,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     }`}
                     aria-hidden="true"
                   >
-                    {String(index + 1).padStart(2, '0')}
+                    {String(originalIndex + 1).padStart(2, '0')}
                   </span>
 
                   {/* Track name */}
@@ -215,6 +353,27 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   >
                     {track.name}
                   </span>
+
+                  {/* Play count badge */}
+                  {showStats && stat.playCount > 0 && (
+                    <span className="shrink-0 text-[9px] font-mono text-white/30 tabular-nums mr-1">
+                      ×{stat.playCount}
+                    </span>
+                  )}
+
+                  {/* Heart button */}
+                  <button
+                    onClick={(e) => handleFaveClick(e, track.id)}
+                    aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                    aria-pressed={isFav}
+                    className={`shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200 active:scale-90 ${
+                      isFav
+                        ? 'text-rose-400 opacity-100'
+                        : 'text-white/25 opacity-0 group-hover:opacity-100 hover:text-rose-300'
+                    }`}
+                  >
+                    <Heart className="w-3 h-3" fill={isFav ? 'currentColor' : 'none'} />
+                  </button>
 
                   {/* Right indicator */}
                   <div className="shrink-0 w-4 flex items-center justify-center">
@@ -244,8 +403,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
         {/* ── Footer ─────────────────────────────────────────────────────── */}
         <footer className="px-4 py-2 border-t border-white/5 text-[10px] text-white/25 flex items-center justify-between shrink-0">
-          <span>Drag to reorder</span>
-          <span className="hidden sm:inline">Esc to close</span>
+          <span>{searchQuery || showFavesOnly ? 'Filtered view' : 'Drag to reorder'}</span>
+          <span className="hidden sm:inline">Esc to close · / to search</span>
         </footer>
       </section>
     </>
