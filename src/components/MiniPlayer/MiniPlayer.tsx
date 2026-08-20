@@ -1,6 +1,10 @@
 import React, { useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, ListMusic, Loader2 } from 'lucide-react';
+import {
+  Play, Pause, SkipBack, SkipForward, ListMusic, Loader2,
+  Shuffle, Repeat, Repeat1,
+} from 'lucide-react';
 import { Track } from '../../types/music';
+import { RepeatMode } from '../../hooks/useAudioPlayer';
 
 interface MiniPlayerProps {
   currentTrack: Track | null;
@@ -10,11 +14,15 @@ interface MiniPlayerProps {
   currentTime: number;
   duration: number;
   isPlaylistOpen: boolean;
+  isShuffle: boolean;
+  repeatMode: RepeatMode;
   onTogglePlay: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onTogglePlaylist: () => void;
   onSeek: (seconds: number) => void;
+  onToggleShuffle: () => void;
+  onCycleRepeat: () => void;
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({
@@ -25,11 +33,15 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   currentTime,
   duration,
   isPlaylistOpen,
+  isShuffle,
+  repeatMode,
   onTogglePlay,
   onPrevious,
   onNext,
   onTogglePlaylist,
   onSeek,
+  onToggleShuffle,
+  onCycleRepeat,
 }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
@@ -41,16 +53,34 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
     onSeek(ratio * duration);
   };
 
-  // Central play button state
   const showSpinner = isLoading || isTracksLoading;
   const playDisabled = isTracksLoading || !currentTrack;
+
+  // ── Repeat icon & tooltip ─────────────────────────────────────────────
+  const repeatTitle =
+    repeatMode === 'off' ? 'Repeat: Off (R)' :
+    repeatMode === 'all' ? 'Repeat: All (R)' :
+                           'Repeat: One (R)';
+
+  const RepeatIcon = repeatMode === 'one' ? Repeat1 : Repeat;
+
+  // ── Shared icon-button class factory ─────────────────────────────────
+  const iconBtn = (active: boolean, extra = '') =>
+    [
+      'w-8 h-8 flex items-center justify-center rounded-full',
+      'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-90',
+      active
+        ? 'text-white bg-white/18 shadow-inner'
+        : 'text-white/45 hover:text-white hover:bg-white/10',
+      extra,
+    ].join(' ');
 
   return (
     <nav
       aria-label="Audio player controls"
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100vw-24px)] sm:w-[440px] md:w-[480px] select-none animate-fadeIn"
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100vw-24px)] sm:w-[480px] md:w-[520px] select-none animate-fadeIn"
     >
-      <div className="glass-player relative flex items-center px-3 sm:px-4 py-2.5 rounded-full overflow-hidden group shadow-2xl">
+      <div className="glass-player relative flex items-center px-2.5 sm:px-3.5 py-2.5 rounded-full overflow-hidden group shadow-2xl">
 
         {/* ── Thin progress bar along bottom edge ── */}
         <div
@@ -62,7 +92,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           aria-valuemax={100}
           aria-label="Playback progress"
           title={`${Math.round(progressPercent)}% played`}
-          className="absolute inset-x-0 bottom-0 h-[2px] bg-white/10 hover:h-[4px] cursor-pointer transition-all duration-200 group/bar"
+          className="absolute inset-x-0 bottom-0 h-[2px] bg-white/10 hover:h-[4px] cursor-pointer transition-all duration-200"
         >
           <div
             className="h-full bg-white/80 rounded-r-full transition-[width] duration-100 ease-linear"
@@ -70,8 +100,28 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           />
         </div>
 
-        {/* ── Left: Prev / Play / Next ── */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        {/* ── Far-Left: Shuffle ── */}
+        <div className="shrink-0 mr-0.5">
+          <button
+            onClick={onToggleShuffle}
+            disabled={playDisabled}
+            aria-label={isShuffle ? 'Shuffle: On' : 'Shuffle: Off'}
+            aria-pressed={isShuffle}
+            title={`Shuffle: ${isShuffle ? 'On' : 'Off'} (S)`}
+            className={iconBtn(isShuffle, 'disabled:opacity-30 disabled:pointer-events-none')}
+          >
+            {/* Active dot indicator under icon */}
+            <span className="relative">
+              <Shuffle className="w-3.5 h-3.5" />
+              {isShuffle && (
+                <span className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
+              )}
+            </span>
+          </button>
+        </div>
+
+        {/* ── Playback Controls: Prev / Play / Next ── */}
+        <div className="flex items-center gap-0.5 shrink-0">
           {/* Previous */}
           <button
             onClick={onPrevious}
@@ -83,7 +133,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             <SkipBack className="w-4 h-4 fill-current" />
           </button>
 
-          {/* Play / Pause — slightly larger */}
+          {/* Play / Pause */}
           <button
             onClick={onTogglePlay}
             disabled={playDisabled}
@@ -135,22 +185,37 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           </p>
         </div>
 
-        {/* ── Right: Playlist toggle ── */}
-        <div className="shrink-0">
+        {/* ── Right controls: Repeat + Playlist ── */}
+        <div className="flex items-center gap-0.5 shrink-0 ml-0.5">
+          {/* Repeat */}
+          <button
+            onClick={onCycleRepeat}
+            disabled={playDisabled}
+            aria-label={repeatTitle}
+            aria-pressed={repeatMode !== 'off'}
+            title={repeatTitle}
+            className={iconBtn(repeatMode !== 'off', 'disabled:opacity-30 disabled:pointer-events-none')}
+          >
+            <span className="relative">
+              <RepeatIcon className="w-3.5 h-3.5" />
+              {repeatMode !== 'off' && (
+                <span className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
+              )}
+            </span>
+          </button>
+
+          {/* Playlist */}
           <button
             onClick={onTogglePlaylist}
             aria-label={isPlaylistOpen ? 'Close playlist' : 'Open playlist'}
             aria-expanded={isPlaylistOpen}
             title="Playlist (Esc to close)"
-            className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-90 ${
-              isPlaylistOpen
-                ? 'bg-white/20 text-white'
-                : 'text-white/60 hover:text-white hover:bg-white/10'
-            }`}
+            className={iconBtn(isPlaylistOpen)}
           >
-            <ListMusic className="w-4 h-4" />
+            <ListMusic className="w-3.5 h-3.5" />
           </button>
         </div>
+
       </div>
     </nav>
   );
