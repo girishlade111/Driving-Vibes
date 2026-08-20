@@ -5,9 +5,16 @@ import { MusicWave } from './components/MiniPlayer/MusicWave';
 import { MiniPlayer } from './components/MiniPlayer/MiniPlayer';
 import { PlaylistPanel } from './components/Playlist/PlaylistPanel';
 import { NowPlayingOverlay } from './components/NowPlayingOverlay/NowPlayingOverlay';
+import { AmbientMixerModal } from './components/AmbientMixer/AmbientMixerModal';
+import { AudioFxModal } from './components/AudioFx/AudioFxModal';
+import { CarModeOverlay } from './components/CarMode/CarModeOverlay';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useFavorites } from './hooks/useFavorites';
 import { useListeningStats } from './hooks/useListeningStats';
+import { useAmbientMixer } from './hooks/useAmbientMixer';
+import { useAudioEqualizer } from './hooks/useAudioEqualizer';
+import { useVoiceCommands } from './hooks/useVoiceCommands';
+import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from './types/backgroundPresets';
 import { AlertCircle } from 'lucide-react';
 
 export type PlayerPosition = 'center' | 'bottom';
@@ -23,6 +30,9 @@ const ACCENT_MAP: Record<string, { h: number; s: string; l: string }> = {
 
 const STORAGE_ACCENT_KEY     = 'driving_vibes_accent';
 const STORAGE_NOW_PLAYING_KEY = 'driving_vibes_show_now_playing';
+const STORAGE_BG_PRESET_KEY  = 'driving_vibes_bg_preset';
+const STORAGE_TOD_KEY        = 'driving_vibes_tod_mode';
+const STORAGE_CUSTOM_BG_KEY  = 'driving_vibes_custom_bg';
 
 function loadAccent(): string {
   try {
@@ -38,6 +48,33 @@ function loadShowNowPlaying(): boolean {
     return v === null ? true : v === 'true';
   } catch {
     return true;
+  }
+}
+
+function loadBgPreset(): BackgroundPreset {
+  try {
+    const id = localStorage.getItem(STORAGE_BG_PRESET_KEY);
+    const found = BACKGROUND_PRESETS.find((p) => p.id === id);
+    if (found) return found;
+  } catch {
+    /* ignore */
+  }
+  return BACKGROUND_PRESETS[0];
+}
+
+function loadTimeOfDay(): TimeOfDayMode {
+  try {
+    return (localStorage.getItem(STORAGE_TOD_KEY) as TimeOfDayMode) || 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+function loadCustomBg(): string {
+  try {
+    return localStorage.getItem(STORAGE_CUSTOM_BG_KEY) || '';
+  } catch {
+    return '';
   }
 }
 
@@ -57,16 +94,37 @@ export const App: React.FC = () => {
   const [playerPosition, setPlayerPosition] = useState<PlayerPosition>('center');
   const [showNowPlaying, setShowNowPlaying] = useState<boolean>(() => loadShowNowPlaying());
   const [accentColor, setAccentColorState]  = useState<string>(() => loadAccent());
+  const [bgPreset, setBgPreset]             = useState<BackgroundPreset>(() => loadBgPreset());
+  const [timeOfDayMode, setTimeOfDayMode]   = useState<TimeOfDayMode>(() => loadTimeOfDay());
+  const [customBgUrl, setCustomBgUrl]       = useState<string>(() => loadCustomBg());
+
+  // ── Car Mode state ────────────────────────────────────────────────────
+  const [isCarModeOpen, setIsCarModeOpen]   = useState<boolean>(false);
 
   // Apply accent color on mount
   useEffect(() => {
     applyAccentToCss(accentColor);
-  }, []);
+  }, [accentColor]);
 
   const handleAccentChange = useCallback((color: string) => {
     setAccentColorState(color);
     applyAccentToCss(color);
     try { localStorage.setItem(STORAGE_ACCENT_KEY, color); } catch { /* ignore */ }
+  }, []);
+
+  const handleSelectBgPreset = useCallback((preset: BackgroundPreset) => {
+    setBgPreset(preset);
+    try { localStorage.setItem(STORAGE_BG_PRESET_KEY, preset.id); } catch { /* ignore */ }
+  }, []);
+
+  const handleSelectTimeOfDay = useCallback((mode: TimeOfDayMode) => {
+    setTimeOfDayMode(mode);
+    try { localStorage.setItem(STORAGE_TOD_KEY, mode); } catch { /* ignore */ }
+  }, []);
+
+  const handleSetCustomBgUrl = useCallback((url: string) => {
+    setCustomBgUrl(url);
+    try { localStorage.setItem(STORAGE_CUSTOM_BG_KEY, url); } catch { /* ignore */ }
   }, []);
 
   const toggleAnimation    = useCallback(() => setIsAnimated((p) => !p), []);
@@ -98,6 +156,7 @@ export const App: React.FC = () => {
   const {
     playlist,
     currentTrack,
+    currentIndex,
     isPlaying,
     currentTime,
     duration,
@@ -126,6 +185,7 @@ export const App: React.FC = () => {
     setSleepTimerOption,
     cancelSleepTimer,
     shareCurrentTrack,
+    audioRef,
   } = useAudioPlayer(startTracking, pauseTracking, resumeTracking);
 
   // Cleanup stats tracking on unmount
@@ -136,20 +196,53 @@ export const App: React.FC = () => {
   // ── Favorites hook ────────────────────────────────────────────────────
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
 
-  // ── Keyboard shortcut: L = toggle favorite, F = toggle faves filter ───
-  // (F filter is handled inside PlaylistPanel; L is here for the current track)
+  // ── Feature 1: Ambient Sound Mixer ────────────────────────────────────
+  const ambient = useAmbientMixer();
+
+  // ── Feature 4: Audio Equalizer & FX ───────────────────────────────────
+  const eq = useAudioEqualizer(audioRef);
+
+  // ── Feature 3: Voice Commands ─────────────────────────────────────────
+  const voice = useVoiceCommands({
+    onPlay: () => {
+      if (!isPlaying) togglePlay();
+    },
+    onPause: () => {
+      if (isPlaying) togglePlay();
+    },
+    onTogglePlay: togglePlay,
+    onNext: next,
+    onPrevious: previous,
+    onToggleMute: toggleMute,
+    onVolumeUp: () => setVolume(Math.min(1, volume + 0.1)),
+    onVolumeDown: () => setVolume(Math.max(0, volume - 0.1)),
+    onToggleShuffle: toggleShuffle,
+    onExitCarMode: () => setIsCarModeOpen(false),
+  });
+
+  // ── Global Keyboard Shortcuts ─────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (e.code === 'KeyL' && currentTrack) {
         e.preventDefault();
         toggleFavorite(currentTrack.id);
+      } else if (e.code === 'KeyA') {
+        e.preventDefault();
+        ambient.toggleMixer();
+      } else if (e.code === 'KeyE') {
+        e.preventDefault();
+        eq.toggleEq();
+      } else if (e.code === 'KeyC') {
+        e.preventDefault();
+        setIsCarModeOpen((p) => !p);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTrack, toggleFavorite]);
+  }, [currentTrack, toggleFavorite, ambient, eq]);
 
   // ── Sleep timer cancel shortcut wrapper ───────────────────────────────
   const handleSetSleepTimer = useCallback(
@@ -182,14 +275,17 @@ export const App: React.FC = () => {
   return (
     <main className="relative w-full h-full min-h-[100dvh] overflow-hidden select-none">
 
-      {/* z-0  — Background (PNG / GIF + blur overlay) */}
+      {/* z-0 — Background (Videos / Image / GIF + Blur + Time of Day) */}
       <Background
+        currentPreset={bgPreset}
+        customMediaUrl={customBgUrl}
         desktopSrc="/backgrounds/desktop-background.png"
         mobileSrc="/backgrounds/mobile-background.png"
         desktopGif="/backgrounds/desktop-background.gif"
         mobileGif="/backgrounds/mobile-background.gif"
         isAnimated={isAnimated}
         blur={blur}
+        timeOfDayMode={timeOfDayMode}
       />
 
       {/* z-35 — Settings button + panel */}
@@ -204,6 +300,12 @@ export const App: React.FC = () => {
         onToggleWave={toggleWave}
         onPositionChange={handlePositionChange}
         onToggleNowPlaying={toggleNowPlaying}
+        currentBgPreset={bgPreset}
+        timeOfDayMode={timeOfDayMode}
+        customBgUrl={customBgUrl}
+        onSelectBgPreset={handleSelectBgPreset}
+        onSelectTimeOfDay={handleSelectTimeOfDay}
+        onSetCustomBgUrl={handleSetCustomBgUrl}
         sleepTimer={sleepTimer}
         sleepRemaining={sleepRemaining}
         onSetSleepTimer={handleSetSleepTimer}
@@ -213,9 +315,12 @@ export const App: React.FC = () => {
         onResetStats={resetStats}
         accentColor={accentColor}
         onAccentChange={handleAccentChange}
+        onOpenAmbientMixer={ambient.openMixer}
+        onOpenAudioFx={eq.openEq}
+        onOpenCarMode={() => setIsCarModeOpen(true)}
       />
 
-      {/* z-29 — Music wave visualizer (above background, below player) */}
+      {/* z-29 — Music wave visualizer */}
       <MusicWave isVisible={showWave} isPlaying={isPlaying} playerPosition={playerPosition} />
 
       {/* z-50 — Now Playing overlay (top-left, auto-hides) */}
@@ -281,6 +386,7 @@ export const App: React.FC = () => {
         volume={volume}
         isMuted={isMuted}
         isFavorite={currentTrack ? isFavorite(currentTrack.id) : false}
+        ambientActiveCount={ambient.activeCount}
         onTogglePlay={togglePlay}
         onPrevious={previous}
         onNext={next}
@@ -292,6 +398,69 @@ export const App: React.FC = () => {
         onToggleMute={toggleMute}
         onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)}
         onShare={handleShare}
+        onToggleAmbientMixer={ambient.toggleMixer}
+        onToggleAudioFx={eq.toggleEq}
+        onOpenCarMode={() => setIsCarModeOpen(true)}
+      />
+
+      {/* ── Feature 1: Ambient Sound Mixer Modal ── */}
+      <AmbientMixerModal
+        isOpen={ambient.isMixerOpen}
+        onClose={ambient.closeMixer}
+        isEnabled={ambient.isEnabled}
+        masterVolume={ambient.masterVolume}
+        volumes={ambient.volumes}
+        enabledSounds={ambient.enabledSounds}
+        activeCount={ambient.activeCount}
+        onToggleMaster={ambient.toggleAmbientMaster}
+        onToggleSound={ambient.toggleSound}
+        onSetSoundVolume={ambient.setSoundVolume}
+        onSetMasterVolume={ambient.setMasterVolume}
+        onApplyPreset={ambient.applyPreset}
+      />
+
+      {/* ── Feature 4: Audio Equalizer & FX Modal ── */}
+      <AudioFxModal
+        isOpen={eq.isEqOpen}
+        onClose={eq.closeEq}
+        bass={eq.bass}
+        mid={eq.mid}
+        treble={eq.treble}
+        speed={eq.speed}
+        presetId={eq.presetId}
+        isSpatial={eq.isSpatial}
+        onApplyPreset={eq.applyPreset}
+        onSetBandGain={eq.setBandGain}
+        onSetPlaybackSpeed={eq.setPlaybackSpeed}
+        onToggleSpatial={eq.toggleSpatial}
+        onReset={eq.resetEq}
+      />
+
+      {/* ── Feature 3: Car / Drive Mode Fullscreen HUD ── */}
+      <CarModeOverlay
+        isOpen={isCarModeOpen}
+        onClose={() => setIsCarModeOpen(false)}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        isLoading={isLoading}
+        currentTime={currentTime}
+        duration={duration}
+        isShuffle={isShuffle}
+        repeatMode={repeatMode}
+        volume={volume}
+        isMuted={isMuted}
+        onTogglePlay={togglePlay}
+        onPrevious={previous}
+        onNext={next}
+        onToggleShuffle={toggleShuffle}
+        onCycleRepeat={cycleRepeat}
+        onSetVolume={setVolume}
+        onToggleMute={toggleMute}
+        onSeek={seek}
+        isVoiceListening={voice.isListening}
+        isVoiceSupported={voice.isSupported}
+        lastVoiceCommand={voice.lastCommand}
+        onToggleVoice={voice.toggleListening}
       />
 
       {/* Backlink — bottom-left, minimal */}

@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, PanelBottom,
-  Moon, BarChart2, Trash2, Palette,
+  Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, Film, SunMedium,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 import { SleepTimerOption } from '../../hooks/useAudioPlayer';
 import { ListeningStats } from '../../hooks/useListeningStats';
+import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from '../../types/backgroundPresets';
 
 interface SettingsPanelProps {
   isAnimated: boolean;
@@ -18,6 +19,13 @@ interface SettingsPanelProps {
   onToggleWave: () => void;
   onPositionChange: (pos: PlayerPosition) => void;
   onToggleNowPlaying: () => void;
+  // Background presets
+  currentBgPreset: BackgroundPreset;
+  timeOfDayMode: TimeOfDayMode;
+  customBgUrl: string;
+  onSelectBgPreset: (preset: BackgroundPreset) => void;
+  onSelectTimeOfDay: (mode: TimeOfDayMode) => void;
+  onSetCustomBgUrl: (url: string) => void;
   // Sleep timer
   sleepTimer: SleepTimerOption;
   sleepRemaining: number;
@@ -30,6 +38,10 @@ interface SettingsPanelProps {
   // Accent color
   accentColor: string;
   onAccentChange: (color: string) => void;
+  // Modal triggers
+  onOpenAmbientMixer?: () => void;
+  onOpenAudioFx?: () => void;
+  onOpenCarMode?: () => void;
 }
 
 /** Reusable inline toggle pill */
@@ -113,6 +125,15 @@ const ACCENT_PRESETS: { label: string; h: number; s: string; l: string; preview:
   { label: 'Violet',  h: 262, s: '80%',  l: '68%',  preview: '#b87cf9' },
 ];
 
+const TIME_OF_DAY_OPTIONS: { id: TimeOfDayMode; label: string }[] = [
+  { id: 'auto', label: 'Auto (Live)' },
+  { id: 'day', label: 'Day' },
+  { id: 'sunset', label: 'Sunset' },
+  { id: 'night', label: 'Night' },
+  { id: 'cyberpunk', label: 'Neon' },
+  { id: 'off', label: 'Off' },
+];
+
 function formatSleepRemaining(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -130,6 +151,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onToggleWave,
   onPositionChange,
   onToggleNowPlaying,
+  currentBgPreset,
+  timeOfDayMode,
+  customBgUrl,
+  onSelectBgPreset,
+  onSelectTimeOfDay,
+  onSetCustomBgUrl,
   sleepTimer,
   sleepRemaining,
   onSetSleepTimer,
@@ -139,8 +166,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onResetStats,
   accentColor,
   onAccentChange,
+  onOpenAmbientMixer,
+  onOpenAudioFx,
+  onOpenCarMode,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [customInputUrl, setCustomInputUrl] = useState(customBgUrl);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -203,27 +234,143 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           ref={panelRef}
           role="dialog"
           aria-label="App settings"
-          className="fixed top-[60px] right-4 w-60 glass-panel rounded-2xl shadow-2xl overflow-hidden animate-fadeIn overflow-y-auto custom-scrollbar"
+          className="fixed top-[60px] right-4 w-72 glass-panel rounded-3xl shadow-2xl overflow-hidden animate-fadeIn overflow-y-auto custom-scrollbar border border-white/15"
           style={{ zIndex: 34, maxHeight: 'calc(100dvh - 80px)' }}
         >
-          <div className="px-4 py-4 space-y-4">
+          <div className="px-4 py-4 space-y-4 text-white">
 
-            {/* ── Background type ── */}
+            {/* ── Quick Feature Shortcuts ── */}
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/35 mb-2.5">
-                Background
+              <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40 mb-2">
+                Quick Features
               </p>
-              <ToggleRow
-                icon={
-                  isAnimated
-                    ? <Sparkles className="w-3.5 h-3.5 text-white/55" />
-                    : <ImageIcon className="w-3.5 h-3.5 text-white/35" />
-                }
-                label={isAnimated ? 'Animated' : 'Static'}
-                active={isAnimated}
-                ariaLabel={isAnimated ? 'Switch to static background' : 'Switch to animated background'}
-                onClick={onToggleAnimated}
-              />
+              <div className="grid grid-cols-3 gap-1.5">
+                {onOpenAmbientMixer && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenAmbientMixer();
+                    }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-sky-500/20 border border-white/8 hover:border-sky-400/30 text-white/70 hover:text-sky-300 transition-all text-center"
+                  >
+                    <CloudRain className="w-4 h-4 text-sky-400" />
+                    <span className="text-[10px] font-medium">Ambient</span>
+                  </button>
+                )}
+
+                {onOpenAudioFx && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenAudioFx();
+                    }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/8 hover:border-amber-400/30 text-white/70 hover:text-amber-300 transition-all text-center"
+                  >
+                    <Sliders className="w-4 h-4 text-amber-400" />
+                    <span className="text-[10px] font-medium">Equalizer</span>
+                  </button>
+                )}
+
+                {onOpenCarMode && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenCarMode();
+                    }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/8 hover:border-emerald-400/30 text-white/70 hover:text-emerald-300 transition-all text-center"
+                  >
+                    <Car className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] font-medium">Car Mode</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Background Presets (Video & Images) ── */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Film className="w-3.5 h-3.5 text-white/40" />
+                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40">
+                  Cinematic Backgrounds
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                {BACKGROUND_PRESETS.map((preset) => {
+                  const active = currentBgPreset.id === preset.id && !customBgUrl;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        onSetCustomBgUrl('');
+                        onSelectBgPreset(preset);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl border text-left transition-all ${
+                        active
+                          ? 'bg-white/15 border-white/30 text-white font-medium shadow-sm'
+                          : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-base">{preset.thumbnail}</span>
+                        <span className="text-xs truncate">{preset.name}</span>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 shrink-0">
+                        {preset.tag}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom URL Input */}
+              <div className="mt-2.5 pt-2 border-t border-white/5">
+                <div className="text-[10px] text-white/40 mb-1">Custom Video / Image URL:</div>
+                <div className="flex gap-1">
+                  <input
+                    type="url"
+                    placeholder="https://...mp4 or image"
+                    value={customInputUrl}
+                    onChange={(e) => setCustomInputUrl(e.target.value)}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white placeholder-white/25 focus:border-white/30"
+                  />
+                  <button
+                    onClick={() => onSetCustomBgUrl(customInputUrl)}
+                    className="px-2 py-1 bg-white/15 hover:bg-white/25 rounded-lg text-[10px] font-medium"
+                  >
+                    Set
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Time-of-Day / Weather Tint ── */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <SunMedium className="w-3.5 h-3.5 text-white/40" />
+                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40">
+                  Time-of-Day Lighting
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {TIME_OF_DAY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => onSelectTimeOfDay(opt.id)}
+                    className={`py-1 px-1.5 rounded-lg text-[10px] font-medium border transition-all text-center ${
+                      timeOfDayMode === opt.id
+                        ? 'bg-white/20 border-white/30 text-white'
+                        : 'bg-white/5 border-white/5 text-white/45 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="h-px bg-white/8" />

@@ -662,5 +662,6 @@ export function useAudioPlayer(
     setSleepTimerOption,
     cancelSleepTimer,
     shareCurrentTrack,
+    audioRef,
   };
 }

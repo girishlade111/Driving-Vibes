@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, ListMusic, Loader2,
   Shuffle, Repeat, Repeat1, Volume2, Volume1, VolumeX, Heart, Share2, Check,
+  CloudRain, Sliders, Car,
 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RepeatMode } from '../../hooks/useAudioPlayer';
@@ -21,6 +22,7 @@ interface MiniPlayerProps {
   volume: number;
   isMuted: boolean;
   isFavorite: boolean;
+  ambientActiveCount?: number;
   onTogglePlay: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -32,6 +34,9 @@ interface MiniPlayerProps {
   onToggleMute: () => void;
   onToggleFavorite: () => void;
   onShare: () => Promise<boolean>;
+  onToggleAmbientMixer?: () => void;
+  onToggleAudioFx?: () => void;
+  onOpenCarMode?: () => void;
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({
@@ -48,6 +53,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   volume,
   isMuted,
   isFavorite,
+  ambientActiveCount = 0,
   onTogglePlay,
   onPrevious,
   onNext,
@@ -59,6 +65,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onToggleMute,
   onToggleFavorite,
   onShare,
+  onToggleAmbientMixer,
+  onToggleAudioFx,
+  onOpenCarMode,
 }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
@@ -135,7 +144,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   return (
     <nav
       aria-label="Audio player controls"
-      className={`${positionClass} z-30 w-[calc(100vw-24px)] sm:w-[520px] md:w-[560px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
+      className={`${positionClass} z-30 w-[calc(100vw-24px)] sm:w-[580px] md:w-[630px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
     >
       <div className="glass-player relative flex items-center px-2 sm:px-3 py-2.5 rounded-full overflow-visible group shadow-2xl">
 
@@ -220,7 +229,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
 
         {/* ── Center: Song info + Heart ── */}
         <div className="flex items-center min-w-0 flex-1 px-1 sm:px-2">
-          {/* Animated equalizer bars when playing */}
           {isPlaying && !showSpinner && (
             <span className="flex items-end gap-[2px] h-3 mr-1.5 shrink-0" aria-hidden="true">
               <span className="w-[2px] bg-white/80 rounded-full bar-1" />
@@ -259,8 +267,49 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           )}
         </div>
 
-        {/* ── Right controls: Volume + Repeat + Share + Playlist ── */}
+        {/* ── Right Feature Buttons: Ambient Mixer + Audio FX + Car Mode ── */}
         <div className="flex items-center gap-0.5 shrink-0">
+
+          {/* Ambient Mixer Trigger */}
+          {onToggleAmbientMixer && (
+            <button
+              onClick={onToggleAmbientMixer}
+              aria-label="Ambient Sound Mixer"
+              title="Ambient Sound Mixer (Rain, Fire, Wind) [A]"
+              className={iconBtn(ambientActiveCount > 0)}
+            >
+              <span className="relative">
+                <CloudRain className="w-3.5 h-3.5 text-sky-300" />
+                {ambientActiveCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+                )}
+              </span>
+            </button>
+          )}
+
+          {/* Equalizer / Audio FX Trigger */}
+          {onToggleAudioFx && (
+            <button
+              onClick={onToggleAudioFx}
+              aria-label="Equalizer & Sound FX"
+              title="Equalizer & Audio FX [E]"
+              className={iconBtn(false)}
+            >
+              <Sliders className="w-3.5 h-3.5 text-amber-300" />
+            </button>
+          )}
+
+          {/* Car Driving Mode */}
+          {onOpenCarMode && (
+            <button
+              onClick={onOpenCarMode}
+              aria-label="Car Driving Mode"
+              title="Car Dashboard HUD [C]"
+              className={iconBtn(false, 'hidden sm:flex')}
+            >
+              <Car className="w-3.5 h-3.5 text-emerald-300" />
+            </button>
+          )}
 
           {/* Volume control */}
           <div
