@@ -28,6 +28,8 @@ export const App: React.FC = () => {
     isTracksLoading,
     error,
     isPlaylistOpen,
+    isShuffle,
+    repeatMode,
     togglePlay,
     previous,
     next,
@@ -36,6 +38,8 @@ export const App: React.FC = () => {
     reorderPlaylist,
     togglePlaylist,
     closePlaylist,
+    toggleShuffle,
+    cycleRepeat,
   } = useAudioPlayer();
 
   return (
@@ -101,11 +105,15 @@ export const App: React.FC = () => {
         currentTime={currentTime}
         duration={duration}
         isPlaylistOpen={isPlaylistOpen}
+        isShuffle={isShuffle}
+        repeatMode={repeatMode}
         onTogglePlay={togglePlay}
         onPrevious={previous}
         onNext={next}
         onTogglePlaylist={togglePlaylist}
         onSeek={seek}
+        onToggleShuffle={toggleShuffle}
+        onCycleRepeat={cycleRepeat}
       />
 
       {/* Backlink — bottom-left, minimal */}
