@@ -165,3 +165,517 @@ function drawFooter(
   ctx.fillText('ladestack.in/driving-vibes', w - pad, h - pad + 4);
   ctx.textAlign = 'left';
 }
+
+
+// ── Template: Midnight Drive ────────────────────────────────────────────────
+function drawMidnight(
+  ctx: CanvasRenderingContext2D, w: number, h: number,
+  trackName: string, quote: string, customMsg: string
+) {
+  const pad = Math.round(w * 0.05);
+
+  // Deep background
+  const bg = ctx.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, '#04071a');
+  bg.addColorStop(0.5, '#080c1e');
+  bg.addColorStop(1, '#02040e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Amber radial glow top-right
+  const g1 = ctx.createRadialGradient(w * 0.82, h * 0.18, 10, w * 0.82, h * 0.18, w * 0.45);
+  g1.addColorStop(0, 'rgba(245,158,11,0.22)');
+  g1.addColorStop(1, 'transparent');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, 0, w, h);
+
+  // Cyan glow bottom-left
+  const g2 = ctx.createRadialGradient(w * 0.1, h * 0.8, 10, w * 0.1, h * 0.8, w * 0.35);
+  g2.addColorStop(0, 'rgba(56,189,248,0.14)');
+  g2.addColorStop(1, 'transparent');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, w, h);
+
+  // Outer border frame
+  strokeRoundRect(ctx, pad * 0.5, pad * 0.5, w - pad, h - pad, 18, 'rgba(255,255,255,0.12)', 1.5);
+
+  // Top label
+  const labelSize = Math.round(w * 0.012);
+  ctx.font = `600 ${labelSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.letterSpacing = '3px';
+  ctx.textAlign = 'left';
+  ctx.fillText('DRIVING VIBES  ·  CINEMATIC SOUNDSCAPE', pad, pad * 1.5);
+  ctx.letterSpacing = '0px';
+
+  // Thin divider
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, pad * 1.7);
+  ctx.lineTo(w - pad, pad * 1.7);
+  ctx.stroke();
+
+  // Track name
+  const titleSize = Math.min(Math.round(w * 0.052), 72);
+  ctx.font = `800 ${titleSize}px Outfit, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  const wrappedTitle = wrapText(ctx, trackName, w - pad * 2.5);
+  const titleY = h * 0.44;
+  wrappedTitle.slice(0, 2).forEach((line, i) => {
+    ctx.fillText(line, pad, titleY + i * (titleSize * 1.15));
+  });
+
+  // Quote
+  const quoteSize = Math.round(w * 0.022);
+  ctx.font = `300 italic ${quoteSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(245,158,11,0.9)';
+  ctx.fillText(`"${quote}"`, pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 1.6);
+
+  // Custom message
+  if (customMsg.trim()) {
+    const msgSize = Math.round(w * 0.018);
+    ctx.font = `400 ${msgSize}px Outfit, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText(customMsg.trim(), pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 3.4);
+  }
+
+  // Waveform
+  drawWaveform(ctx, pad, h * 0.82, w - pad * 2, 'rgba(245,158,11,0.7)', Math.round(w * 0.003), Math.round(w * 0.005), 1.4);
+
+  // Footer
+  drawFooter(ctx, w, h, pad, 'rgba(255,255,255,0.28)', trackName);
+
+  // Film grain & scan lines
+  drawGrain(ctx, w, h, 0.035);
+  drawScanLines(ctx, w, h, 0.04);
+}
+
+// ── Template: Neon Highway ──────────────────────────────────────────────────
+function drawNeon(
+  ctx: CanvasRenderingContext2D, w: number, h: number,
+  trackName: string, quote: string, customMsg: string
+) {
+  const pad = Math.round(w * 0.05);
+
+  // Pure black background
+  ctx.fillStyle = '#000005';
+  ctx.fillRect(0, 0, w, h);
+
+  // Cyan glow center-top
+  const g1 = ctx.createRadialGradient(w * 0.5, 0, 0, w * 0.5, 0, h * 0.75);
+  g1.addColorStop(0, 'rgba(0,255,255,0.10)');
+  g1.addColorStop(0.5, 'rgba(168,85,247,0.08)');
+  g1.addColorStop(1, 'transparent');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, 0, w, h);
+
+  // Magenta glow bottom-right
+  const g2 = ctx.createRadialGradient(w * 0.85, h * 0.85, 0, w * 0.85, h * 0.85, w * 0.5);
+  g2.addColorStop(0, 'rgba(236,72,153,0.18)');
+  g2.addColorStop(1, 'transparent');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid lines perspective
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,255,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 12; i++) {
+    const x = (w / 12) * i;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let j = 0; j <= 8; j++) {
+    const y = (h / 8) * j;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Neon border — cyan
+  strokeRoundRect(ctx, pad * 0.5, pad * 0.5, w - pad, h - pad, 12,
+    'rgba(0,255,255,0.45)', 2);
+  // inner glow repeat
+  strokeRoundRect(ctx, pad * 0.5 + 4, pad * 0.5 + 4, w - pad - 8, h - pad - 8, 10,
+    'rgba(0,255,255,0.12)', 1);
+
+  // Label
+  const labelSize = Math.round(w * 0.012);
+  ctx.font = `700 ${labelSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(0,255,255,0.7)';
+  ctx.letterSpacing = '5px';
+  ctx.textAlign = 'left';
+  ctx.fillText('DRIVING VIBES  ·  NEON HIGHWAY', pad, pad * 1.5);
+  ctx.letterSpacing = '0px';
+
+  // Track name — magenta neon
+  const titleSize = Math.min(Math.round(w * 0.052), 72);
+  ctx.font = `900 ${titleSize}px Outfit, sans-serif`;
+  ctx.fillStyle = '#ff00ff';
+  ctx.shadowColor = 'rgba(255,0,255,0.6)';
+  ctx.shadowBlur = Math.round(w * 0.018);
+  const wrappedTitle = wrapText(ctx, trackName, w - pad * 2.5);
+  const titleY = h * 0.44;
+  wrappedTitle.slice(0, 2).forEach((line, i) => {
+    ctx.fillText(line, pad, titleY + i * (titleSize * 1.15));
+  });
+  ctx.shadowBlur = 0;
+
+  // Quote — cyan
+  const quoteSize = Math.round(w * 0.022);
+  ctx.font = `300 italic ${quoteSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(0,255,255,0.85)';
+  ctx.fillText(`"${quote}"`, pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 1.6);
+
+  if (customMsg.trim()) {
+    const msgSize = Math.round(w * 0.018);
+    ctx.font = `400 ${msgSize}px Outfit, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText(customMsg.trim(), pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 3.4);
+  }
+
+  // Waveform — cyan+magenta alternating
+  drawWaveform(ctx, pad, h * 0.82, (w - pad * 2) / 2, 'rgba(0,255,255,0.75)',
+    Math.round(w * 0.003), Math.round(w * 0.005), 2.1);
+  drawWaveform(ctx, pad + (w - pad * 2) / 2, h * 0.82, (w - pad * 2) / 2, 'rgba(236,72,153,0.75)',
+    Math.round(w * 0.003), Math.round(w * 0.005), 0.8);
+
+  drawFooter(ctx, w, h, pad, 'rgba(0,255,255,0.35)', trackName);
+  drawGrain(ctx, w, h, 0.025);
+  drawScanLines(ctx, w, h, 0.05);
+}
+
+// ── Template: Film Grain ────────────────────────────────────────────────────
+function drawFilm(
+  ctx: CanvasRenderingContext2D, w: number, h: number,
+  trackName: string, quote: string, customMsg: string
+) {
+  const pad = Math.round(w * 0.05);
+
+  // Sepia warm background
+  const bg = ctx.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, '#1a1108');
+  bg.addColorStop(0.6, '#120d06');
+  bg.addColorStop(1, '#0c0803');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Warm amber vignette center
+  const g1 = ctx.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, w * 0.65);
+  g1.addColorStop(0, 'rgba(210,140,40,0.14)');
+  g1.addColorStop(1, 'transparent');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, 0, w, h);
+
+  // Heavy vignette corners
+  const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, w * 0.8);
+  vignette.addColorStop(0, 'transparent');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.75)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, w, h);
+
+  // Film sprocket holes decoration (top)
+  ctx.fillStyle = 'rgba(255,220,120,0.08)';
+  for (let i = 0; i < 12; i++) {
+    const x = (w / 12) * i + w / 24;
+    fillRoundRect(ctx, x - 12, 12, 24, 22, 4, 'rgba(0,0,0,0.5)');
+    strokeRoundRect(ctx, x - 12, 12, 24, 22, 4, 'rgba(200,160,60,0.3)', 1);
+  }
+  // Film sprocket holes (bottom)
+  for (let i = 0; i < 12; i++) {
+    const x = (w / 12) * i + w / 24;
+    fillRoundRect(ctx, x - 12, h - 34, 24, 22, 4, 'rgba(0,0,0,0.5)');
+    strokeRoundRect(ctx, x - 12, h - 34, 24, 22, 4, 'rgba(200,160,60,0.3)', 1);
+  }
+
+  // Label
+  const labelSize = Math.round(w * 0.012);
+  ctx.font = `600 ${labelSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(210,170,80,0.55)';
+  ctx.letterSpacing = '3px';
+  ctx.textAlign = 'left';
+  ctx.fillText('DRIVING VIBES  ·  ANALOG SESSIONS', pad, pad * 1.6);
+  ctx.letterSpacing = '0px';
+
+  // Track name — warm white
+  const titleSize = Math.min(Math.round(w * 0.052), 72);
+  ctx.font = `800 ${titleSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,240,200,0.92)';
+  const wrappedTitle = wrapText(ctx, trackName, w - pad * 2.5);
+  const titleY = h * 0.44;
+  wrappedTitle.slice(0, 2).forEach((line, i) => {
+    ctx.fillText(line, pad, titleY + i * (titleSize * 1.15));
+  });
+
+  // Quote — warm gold
+  const quoteSize = Math.round(w * 0.022);
+  ctx.font = `300 italic ${quoteSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(210,160,60,0.85)';
+  ctx.fillText(`"${quote}"`, pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 1.6);
+
+  if (customMsg.trim()) {
+    const msgSize = Math.round(w * 0.018);
+    ctx.font = `400 ${msgSize}px Outfit, sans-serif`;
+    ctx.fillStyle = 'rgba(255,230,180,0.5)';
+    ctx.fillText(customMsg.trim(), pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 3.4);
+  }
+
+  // Waveform — amber
+  drawWaveform(ctx, pad, h * 0.82, w - pad * 2, 'rgba(210,140,40,0.7)',
+    Math.round(w * 0.003), Math.round(w * 0.005), 3.2);
+
+  drawFooter(ctx, w, h, pad, 'rgba(200,160,60,0.35)', trackName);
+
+  // Heavy grain for film look
+  drawGrain(ctx, w, h, 0.065);
+  drawScanLines(ctx, w, h, 0.035);
+}
+
+// ── Template: Golden Hour ───────────────────────────────────────────────────
+function drawDawn(
+  ctx: CanvasRenderingContext2D, w: number, h: number,
+  trackName: string, quote: string, customMsg: string
+) {
+  const pad = Math.round(w * 0.05);
+
+  // Warm sunrise gradient
+  const bg = ctx.createLinearGradient(0, 0, w * 0.3, h);
+  bg.addColorStop(0, '#1a0800');
+  bg.addColorStop(0.3, '#3d1200');
+  bg.addColorStop(0.6, '#6b2700');
+  bg.addColorStop(1, '#0d0504');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Orange-gold sun glow upper-center
+  const sun = ctx.createRadialGradient(w * 0.55, h * 0.2, 0, w * 0.55, h * 0.2, w * 0.55);
+  sun.addColorStop(0, 'rgba(255,180,40,0.35)');
+  sun.addColorStop(0.4, 'rgba(255,100,10,0.18)');
+  sun.addColorStop(1, 'transparent');
+  ctx.fillStyle = sun;
+  ctx.fillRect(0, 0, w, h);
+
+  // Rose glow bottom-left
+  const g2 = ctx.createRadialGradient(0, h, 0, 0, h, w * 0.5);
+  g2.addColorStop(0, 'rgba(225,50,80,0.22)');
+  g2.addColorStop(1, 'transparent');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, w, h);
+
+  // Vignette
+  const vig = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, w * 0.82);
+  vig.addColorStop(0, 'transparent');
+  vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, w, h);
+
+  // Decorative horizontal bars top & bottom
+  const barH = Math.round(h * 0.06);
+  const barGrad = ctx.createLinearGradient(0, 0, w, 0);
+  barGrad.addColorStop(0, 'rgba(255,120,20,0.22)');
+  barGrad.addColorStop(0.5, 'rgba(255,180,40,0.12)');
+  barGrad.addColorStop(1, 'rgba(255,80,10,0.22)');
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(0, 0, w, barH);
+  ctx.fillRect(0, h - barH, w, barH);
+
+  // Label
+  const labelSize = Math.round(w * 0.012);
+  ctx.font = `600 ${labelSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,200,80,0.65)';
+  ctx.letterSpacing = '3px';
+  ctx.textAlign = 'left';
+  ctx.fillText('DRIVING VIBES  ·  GOLDEN HOUR', pad, pad * 1.6);
+  ctx.letterSpacing = '0px';
+
+  // Track name
+  const titleSize = Math.min(Math.round(w * 0.052), 72);
+  ctx.font = `800 ${titleSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,240,180,0.95)';
+  const wrappedTitle = wrapText(ctx, trackName, w - pad * 2.5);
+  const titleY = h * 0.44;
+  wrappedTitle.slice(0, 2).forEach((line, i) => {
+    ctx.fillText(line, pad, titleY + i * (titleSize * 1.15));
+  });
+
+  // Quote — rose
+  const quoteSize = Math.round(w * 0.022);
+  ctx.font = `300 italic ${quoteSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,140,80,0.9)';
+  ctx.fillText(`"${quote}"`, pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 1.6);
+
+  if (customMsg.trim()) {
+    const msgSize = Math.round(w * 0.018);
+    ctx.font = `400 ${msgSize}px Outfit, sans-serif`;
+    ctx.fillStyle = 'rgba(255,220,160,0.55)';
+    ctx.fillText(customMsg.trim(), pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 3.4);
+  }
+
+  // Dual waveform
+  drawWaveform(ctx, pad, h * 0.82, w - pad * 2, 'rgba(255,140,40,0.72)',
+    Math.round(w * 0.003), Math.round(w * 0.005), 4.7);
+
+  drawFooter(ctx, w, h, pad, 'rgba(255,180,80,0.3)', trackName);
+  drawGrain(ctx, w, h, 0.03);
+  drawScanLines(ctx, w, h, 0.03);
+}
+
+// ── Template: Monochrome ────────────────────────────────────────────────────
+function drawMono(
+  ctx: CanvasRenderingContext2D, w: number, h: number,
+  trackName: string, quote: string, customMsg: string
+) {
+  const pad = Math.round(w * 0.05);
+
+  // Pure black
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle center glow
+  const g1 = ctx.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, w * 0.55);
+  g1.addColorStop(0, 'rgba(255,255,255,0.06)');
+  g1.addColorStop(1, 'transparent');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, 0, w, h);
+
+  // Strong white border
+  strokeRoundRect(ctx, pad * 0.5, pad * 0.5, w - pad, h - pad, 0,
+    'rgba(255,255,255,0.85)', 2.5);
+  // Inner thin border
+  strokeRoundRect(ctx, pad * 0.5 + 8, pad * 0.5 + 8, w - pad - 16, h - pad - 16, 0,
+    'rgba(255,255,255,0.15)', 1);
+
+  // Corner crosshair marks
+  const cs = 20;
+  const corners = [
+    [pad * 0.5, pad * 0.5], [w - pad * 0.5 - cs, pad * 0.5],
+    [pad * 0.5, h - pad * 0.5 - cs], [w - pad * 0.5 - cs, h - pad * 0.5 - cs],
+  ] as [number, number][];
+  corners.forEach(([cx, cy]) => {
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(cx + cs, cy); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + cs); ctx.stroke();
+  });
+
+  // Label
+  const labelSize = Math.round(w * 0.012);
+  ctx.font = `600 ${labelSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.letterSpacing = '4px';
+  ctx.textAlign = 'left';
+  ctx.fillText('DRIVING VIBES  ·  MONOCHROME', pad, pad * 1.6);
+  ctx.letterSpacing = '0px';
+
+  // Horizontal rule
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, pad * 1.9);
+  ctx.lineTo(w - pad, pad * 1.9);
+  ctx.stroke();
+
+  // Track name
+  const titleSize = Math.min(Math.round(w * 0.052), 72);
+  ctx.font = `900 ${titleSize}px Outfit, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  const wrappedTitle = wrapText(ctx, trackName, w - pad * 2.5);
+  const titleY = h * 0.44;
+  wrappedTitle.slice(0, 2).forEach((line, i) => {
+    ctx.fillText(line, pad, titleY + i * (titleSize * 1.15));
+  });
+
+  // Quote — white 60%
+  const quoteSize = Math.round(w * 0.022);
+  ctx.font = `300 italic ${quoteSize}px Outfit, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillText(`"${quote}"`, pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 1.6);
+
+  if (customMsg.trim()) {
+    const msgSize = Math.round(w * 0.018);
+    ctx.font = `400 ${msgSize}px Outfit, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(customMsg.trim(), pad, titleY + wrappedTitle.slice(0, 2).length * (titleSize * 1.15) + quoteSize * 3.4);
+  }
+
+  // Waveform — white
+  drawWaveform(ctx, pad, h * 0.82, w - pad * 2, 'rgba(255,255,255,0.6)',
+    Math.round(w * 0.003), Math.round(w * 0.005), 6.0);
+
+  drawFooter(ctx, w, h, pad, 'rgba(255,255,255,0.25)', trackName);
+  drawGrain(ctx, w, h, 0.04);
+}
+
+
+// ── Main component ──────────────────────────────────────────────────────────
+export const PostcardModal: React.FC<PostcardModalProps> = ({
+  isOpen,
+  onClose,
+  currentTrack,
+}) => {
+  const canvasRef              = useRef<HTMLCanvasElement | null>(null);
+  const [previewUrl, setPreviewUrl]     = useState<string | null>(null);
+  const [template, setTemplate]         = useState<TemplateId>('midnight');
+  const [size, setSize]                 = useState<SizeId>('postcard');
+  const [selectedQuote, setSelectedQuote] = useState(QUOTES[0]);
+  const [customMsg, setCustomMsg]       = useState('');
+  const [activeTab, setActiveTab]       = useState<'template' | 'text' | 'size'>('template');
+  const [downloaded, setDownloaded]     = useState(false);
+  const [isRendering, setIsRendering]   = useState(false);
+
+  const renderPostcard = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    setIsRendering(true);
+
+    const sizeOpt = SIZES.find((s) => s.id === size) ?? SIZES[0];
+    canvas.width  = sizeOpt.w;
+    canvas.height = sizeOpt.h;
+
+    const trackName = currentTrack ? currentTrack.name : 'Late Night Ambient Voyage';
+
+    switch (template) {
+      case 'midnight': drawMidnight(ctx, sizeOpt.w, sizeOpt.h, trackName, selectedQuote, customMsg); break;
+      case 'neon':     drawNeon(ctx, sizeOpt.w, sizeOpt.h, trackName, selectedQuote, customMsg);     break;
+      case 'film':     drawFilm(ctx, sizeOpt.w, sizeOpt.h, trackName, selectedQuote, customMsg);     break;
+      case 'dawn':     drawDawn(ctx, sizeOpt.w, sizeOpt.h, trackName, selectedQuote, customMsg);     break;
+      case 'mono':     drawMono(ctx, sizeOpt.w, sizeOpt.h, trackName, selectedQuote, customMsg);     break;
+    }
+
+    setPreviewUrl(canvas.toDataURL('image/png'));
+    setIsRendering(false);
+  }, [currentTrack, template, size, selectedQuote, customMsg]);
+
+  // Re-render whenever any design option changes
+  useEffect(() => {
+    if (isOpen) {
+      const id = setTimeout(renderPostcard, 80);
+      return () => clearTimeout(id);
+    }
+  }, [isOpen, renderPostcard]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
+  const handleDownload = () => {
+    if (!previewUrl) return;
+    const a = document.createElement('a');
+    a.href = previewUrl;
+    const sizeOpt = SIZES.find((s) => s.id === size) ?? SIZES[0];
+    a.download = `driving-vibes-${template}-${sizeOpt.id}-${Date.now()}.png`;
+    a.click();
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2500);
+  };
+
+  if (!isOpen) return null;
