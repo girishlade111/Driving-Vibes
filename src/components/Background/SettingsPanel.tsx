@@ -327,7 +327,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 border border-white/8 hover:border-indigo-400/30 text-white/70 hover:text-indigo-300 transition-all text-center"
                   >
                     <Users className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[10px] font-medium">Sync Room</span>
+                    <span className="text-[10px] font-medium">Virtual Trip</span>
                   </button>
                 )}
 
