@@ -88,7 +88,7 @@ function applyAccentToCss(colorName: string) {
 
 export const App: React.FC = () => {
   // ── Background / visual settings ─────────────────────────────────────
-  const [isAnimated, setIsAnimated]         = useState<boolean>(false);
+  const [isAnimated]                        = useState<boolean>(false);
   const [blur, setBlur]                     = useState<number>(0);
   const [showWave, setShowWave]             = useState<boolean>(true);
   const [playerPosition, setPlayerPosition] = useState<PlayerPosition>('center');
