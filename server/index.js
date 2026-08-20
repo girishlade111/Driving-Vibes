@@ -137,44 +137,6 @@ async function listAllAudioObjects(s3Client, bucketName) {
   return items;
 }
 
-const DEFAULT_TRACKS = [
-  {
-    id: 'default_1',
-    name: 'Midnight Highway Drift',
-    url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
-  },
-  {
-    id: 'default_2',
-    name: 'Sunset Coastline Cruiser',
-    url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3',
-  },
-  {
-    id: 'default_3',
-    name: 'Tokyo Neon Rain',
-    url: 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_7314a42b10.mp3',
-  },
-  {
-    id: 'default_4',
-    name: 'Synthwave Night Grid',
-    url: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792cb.mp3',
-  },
-  {
-    id: 'default_5',
-    name: 'Endless Horizon Chillhop',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3',
-  },
-  {
-    id: 'default_6',
-    name: 'Cosmic Starfield Voyage',
-    url: 'https://cdn.pixabay.com/download/audio/2022/11/06/audio_c92e76f577.mp3',
-  },
-  {
-    id: 'default_7',
-    name: '4AM Quiet Streets',
-    url: 'https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3',
-  },
-];
-
 // ── GET /api/tracks ───────────────────────────────────────────────────────
 /**
  * Returns the list of music tracks from Cloudflare R2 or default curated library.
@@ -184,14 +146,13 @@ app.get('/api/tracks', async (req, res) => {
   const R2_IS_PRIVATE = (process.env.R2_IS_PRIVATE ?? 'true').toLowerCase() === 'true';
   const r2Client = getR2Client();
 
-  // ── Not configured mode: return built-in tracks ──────────────────────────
+  // ── Not configured mode: return error (no fallback demo songs) ─────────
   if (!r2Client || !R2_BUCKET_NAME) {
-    return res.json({
-      success: true,
-      source: 'built-in',
-      message:
-        'Using built-in curated library. To load your custom R2 tracks, configure .env.',
-      tracks: DEFAULT_TRACKS,
+    return res.status(500).json({
+      success: false,
+      source: 'error',
+      error: 'Cloudflare R2 is not configured. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in your .env file.',
+      tracks: [],
     });
   }
 
