@@ -23,8 +23,6 @@ import { useVoiceCommands } from './hooks/useVoiceCommands';
 import { useAiDjHost } from './hooks/useAiDjHost';
 import { useVirtualTrip } from './hooks/useVirtualTrip';
 import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from './types/backgroundPresets';
-import { RadioStation } from './types/radioStreams';
-import { Track } from './types/music';
 import { AlertCircle, Radio as RadioIcon } from 'lucide-react';
 
 export type PlayerPosition = 'center' | 'bottom';
