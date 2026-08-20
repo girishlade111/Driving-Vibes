@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, AlignBottom } from 'lucide-react';
+import { Settings, Sparkles, ImageIcon, AudioLines, AlignCenter, PanelBottom } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 
 interface SettingsPanelProps {
@@ -60,7 +60,7 @@ const SegmentedControl: React.FC<{
     },
     {
       key: 'bottom',
-      icon: <AlignBottom className="w-3.5 h-3.5" />,
+      icon: <PanelBottom className="w-3.5 h-3.5" />,
       label: 'Bottom',
     },
   ];
