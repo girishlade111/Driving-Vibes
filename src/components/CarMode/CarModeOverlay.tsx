@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Mic, MicOff,
-  X, Shuffle, Repeat, Repeat1, Gauge, Clock, Navigation, Zap, Compass,
+  X, Shuffle, Repeat, Repeat1, Gauge, Clock, Navigation, Zap,
 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RepeatMode } from '../../hooks/useAudioPlayer';
@@ -366,16 +366,32 @@ export const CarModeOverlay: React.FC<CarModeOverlayProps> = ({
               <Shuffle className="w-6 h-6" />
             </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleMute();
-              }}
-              aria-label="Toggle Mute"
-              className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-all"
-            >
-              {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleMute();
+                }}
+                aria-label="Toggle Mute"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 transition-all"
+              >
+                {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.02"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onSetVolume(parseFloat(e.target.value));
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-20 sm:w-28 h-2 bg-white/15 rounded-lg appearance-none cursor-pointer accent-amber-400 hidden md:block"
+                aria-label="Car mode volume"
+              />
+            </div>
           </div>
 
           {/* Center: Previous / Giant Play-Pause / Next */}
