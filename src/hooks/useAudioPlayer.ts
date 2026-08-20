@@ -3,6 +3,19 @@ import { Track } from '../types/music';
 
 const STORAGE_PLAYLIST_KEY = 'driving_vibes_custom_order';
 
+// ── Repeat modes ──────────────────────────────────────────────────────────
+export type RepeatMode = 'off' | 'all' | 'one';
+
+// ── Fisher-Yates shuffle helper ───────────────────────────────────────────
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export function useAudioPlayer() {
   const [playlist, setPlaylist] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -15,6 +28,10 @@ export function useAudioPlayer() {
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [dataSource, setDataSource] = useState<string>('loading');
 
+  // ── Shuffle & Repeat state ────────────────────────────────────────────
+  const [isShuffle, setIsShuffle] = useState<boolean>(false);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
+
   // Single persistent HTMLAudioElement instance
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -25,21 +42,34 @@ export function useAudioPlayer() {
   const playlistRef = useRef<Track[]>([]);
   const currentIndexRef = useRef<number>(0);
   const isPlayingRef = useRef<boolean>(false);
+  const isShuffleRef = useRef<boolean>(false);
+  const repeatModeRef = useRef<RepeatMode>('off');
+
+  // Shuffle queue: indices in shuffled order, consumed as tracks play
+  const shuffleQueueRef = useRef<number[]>([]);
 
   // Keep refs in sync with state
-  useEffect(() => {
-    playlistRef.current = playlist;
-  }, [playlist]);
+  useEffect(() => { playlistRef.current = playlist; }, [playlist]);
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { isShuffleRef.current = isShuffle; }, [isShuffle]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
 
+  // ── Keep audio.loop in sync with repeat-one mode ─────────────────────
   useEffect(() => {
-    currentIndexRef.current = currentIndex;
-  }, [currentIndex]);
+    if (audioRef.current) {
+      audioRef.current.loop = repeatMode === 'one';
+    }
+  }, [repeatMode]);
 
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
+  // ── Build a fresh shuffle queue (exclude currentIndex) ───────────────
+  const buildShuffleQueue = useCallback((excludeIndex: number) => {
+    const pl = playlistRef.current;
+    const indices = pl.map((_, i) => i).filter((i) => i !== excludeIndex);
+    shuffleQueueRef.current = shuffleArray(indices);
+  }, []);
 
-  // ─── Internal: advance to a track by index (always reads from ref) ────────
+  // ── Internal: advance to a track by index (always reads from ref) ─────
   const goToIndex = useCallback((index: number, autoPlay: boolean) => {
     const pl = playlistRef.current;
     if (pl.length === 0 || index < 0 || index >= pl.length) return;
@@ -54,6 +84,7 @@ export function useAudioPlayer() {
     setDuration(0);
 
     audio.src = target.url;
+    audio.loop = repeatModeRef.current === 'one';
     audio.load();
 
     if (autoPlay) {
@@ -72,23 +103,41 @@ export function useAudioPlayer() {
     }
   }, []);
 
-  // ─── Initialize Audio element once on mount ──────────────────────────────
+  // ── Get the next index honouring shuffle / repeat ─────────────────────
+  const getNextIndex = useCallback(
+    (currentIdx: number): number => {
+      const pl = playlistRef.current;
+      if (pl.length === 0) return 0;
+
+      if (isShuffleRef.current) {
+        // Replenish queue when empty
+        if (shuffleQueueRef.current.length === 0) {
+          buildShuffleQueue(currentIdx);
+        }
+        const next = shuffleQueueRef.current.shift();
+        return next !== undefined ? next : 0;
+      }
+
+      // Sequential
+      if (repeatModeRef.current === 'off') {
+        // Stop at end — return -1 as sentinel
+        return currentIdx < pl.length - 1 ? currentIdx + 1 : -1;
+      }
+      // repeat-all wraps around
+      return (currentIdx + 1) % pl.length;
+    },
+    [buildShuffleQueue]
+  );
+
+  // ── Initialize Audio element once on mount ────────────────────────────
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'metadata';
     audioRef.current = audio;
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
-    };
-
-    const handleWaiting = () => {
-      setIsLoading(true);
-    };
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration || 0);
+    const handleWaiting = () => setIsLoading(true);
 
     const handlePlaying = () => {
       setIsLoading(false);
@@ -106,18 +155,25 @@ export function useAudioPlayer() {
     /**
      * CRITICAL: `handleEnded` must use refs (not closures) to always advance
      * from the correct current index — this is the fix for the stale closure bug.
+     * Note: when audio.loop=true (repeat-one), 'ended' never fires — browser loops natively.
      */
     const handleEnded = () => {
       const pl = playlistRef.current;
       const idx = currentIndexRef.current;
       if (pl.length === 0) return;
-      const nextIdx = (idx + 1) % pl.length;
+
+      const nextIdx = getNextIndex(idx);
+      if (nextIdx === -1) {
+        // repeat=off and we reached the end — just stop
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        return;
+      }
       goToIndex(nextIdx, true);
     };
 
     let skipErrorTimer: ReturnType<typeof setTimeout> | null = null;
     const handleError = () => {
-      // Only report error if audio actually has a source
       if (!audio.src || audio.src === window.location.href) return;
       console.warn('Audio playback error on current track:', audio.error?.message);
       setIsLoading(false);
@@ -125,14 +181,13 @@ export function useAudioPlayer() {
       isPlayingRef.current = false;
       setError('Unable to stream this track. Skipping...');
 
-      // Auto-skip after brief moment so the user sees the message
       skipErrorTimer = setTimeout(() => {
         setError(null);
         const pl = playlistRef.current;
         const idx = currentIndexRef.current;
         if (pl.length > 0) {
-          const nextIdx = (idx + 1) % pl.length;
-          goToIndex(nextIdx, true);
+          const nextIdx = getNextIndex(idx);
+          if (nextIdx !== -1) goToIndex(nextIdx, true);
         }
       }, 1800);
     };
@@ -157,9 +212,9 @@ export function useAudioPlayer() {
       audio.pause();
       audio.src = '';
     };
-  }, [goToIndex]);
+  }, [goToIndex, getNextIndex]);
 
-  // ─── Fetch tracks from API on mount ──────────────────────────────────────
+  // ── Fetch tracks from API on mount ────────────────────────────────────
   useEffect(() => {
     let isMounted = true;
 
@@ -173,7 +228,7 @@ export function useAudioPlayer() {
         if (!isMounted) return;
 
         let fetchedTracks: Track[] = data.tracks || [];
-        setDataSource(data.source || 'demo');
+        setDataSource(data.source || 'unknown');
 
         // Re-apply saved playlist order if available
         const savedOrderJson = localStorage.getItem(STORAGE_PLAYLIST_KEY);
@@ -189,7 +244,6 @@ export function useAudioPlayer() {
                 trackMap.delete(id);
               }
             }
-            // Append any newly discovered tracks not in saved list
             trackMap.forEach((t) => ordered.push(t));
 
             if (ordered.length > 0) {
@@ -206,7 +260,6 @@ export function useAudioPlayer() {
         if (fetchedTracks.length > 0 && audioRef.current) {
           currentIndexRef.current = 0;
           setCurrentIndex(0);
-          // Pre-load first track metadata without autoplaying
           audioRef.current.src = fetchedTracks[0].url;
           audioRef.current.preload = 'metadata';
         }
@@ -223,15 +276,13 @@ export function useAudioPlayer() {
     }
 
     loadTracks();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  // ─── Derived current track ────────────────────────────────────────────────
+  // ── Derived current track ─────────────────────────────────────────────
   const currentTrack = playlist[currentIndex] || null;
 
-  // ─── Play / Pause toggle ──────────────────────────────────────────────────
+  // ── Play / Pause toggle ───────────────────────────────────────────────
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     const track = playlistRef.current[currentIndexRef.current];
@@ -259,30 +310,32 @@ export function useAudioPlayer() {
     }
   }, []);
 
-  // ─── Select track by index ────────────────────────────────────────────────
+  // ── Select track by index ─────────────────────────────────────────────
   const selectTrack = useCallback(
     (index: number, autoPlay: boolean = true) => {
+      // When manually selecting in shuffle mode, rebuild the queue from new position
+      if (isShuffleRef.current) buildShuffleQueue(index);
       goToIndex(index, autoPlay);
     },
-    [goToIndex]
+    [goToIndex, buildShuffleQueue]
   );
 
-  // ─── Next track ───────────────────────────────────────────────────────────
+  // ── Next track ────────────────────────────────────────────────────────
   const next = useCallback(() => {
     const pl = playlistRef.current;
     if (pl.length === 0) return;
-    const nextIdx = (currentIndexRef.current + 1) % pl.length;
+    const nextIdx = getNextIndex(currentIndexRef.current);
+    if (nextIdx === -1) return; // end of list with repeat=off
     goToIndex(nextIdx, true);
-  }, [goToIndex]);
+  }, [goToIndex, getNextIndex]);
 
-  // ─── Previous track (with 3-second smart restart) ────────────────────────
+  // ── Previous track (with 3-second smart restart) ──────────────────────
   const previous = useCallback(() => {
     const audio = audioRef.current;
     const pl = playlistRef.current;
     if (!audio || pl.length === 0) return;
 
     if (audio.currentTime > 3) {
-      // Restart current track
       audio.currentTime = 0;
       setCurrentTime(0);
       if (!isPlayingRef.current) {
@@ -299,7 +352,7 @@ export function useAudioPlayer() {
     }
   }, [goToIndex]);
 
-  // ─── Seek ────────────────────────────────────────────────────────────────
+  // ── Seek ──────────────────────────────────────────────────────────────
   const seek = useCallback(
     (seconds: number) => {
       const audio = audioRef.current;
@@ -311,13 +364,39 @@ export function useAudioPlayer() {
     [duration]
   );
 
-  // ─── Reorder playlist ────────────────────────────────────────────────────
+  // ── Toggle Shuffle ────────────────────────────────────────────────────
+  const toggleShuffle = useCallback(() => {
+    setIsShuffle((prev) => {
+      const next = !prev;
+      if (next) {
+        // Build queue immediately when enabling shuffle
+        buildShuffleQueue(currentIndexRef.current);
+      } else {
+        shuffleQueueRef.current = [];
+      }
+      return next;
+    });
+  }, [buildShuffleQueue]);
+
+  // ── Cycle Repeat Mode: off → all → one → off ─────────────────────────
+  const cycleRepeat = useCallback(() => {
+    setRepeatMode((prev) => {
+      const next: RepeatMode =
+        prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off';
+      repeatModeRef.current = next;
+      if (audioRef.current) {
+        audioRef.current.loop = next === 'one';
+      }
+      return next;
+    });
+  }, []);
+
+  // ── Reorder playlist ──────────────────────────────────────────────────
   const reorderPlaylist = useCallback((newPlaylist: Track[]) => {
     const activeid = playlistRef.current[currentIndexRef.current]?.id;
     playlistRef.current = newPlaylist;
     setPlaylist(newPlaylist);
 
-    // Keep currentIndex pointing to the same track
     if (activeid) {
       const newIdx = newPlaylist.findIndex((t) => t.id === activeid);
       if (newIdx !== -1) {
@@ -326,7 +405,11 @@ export function useAudioPlayer() {
       }
     }
 
-    // Persist order to localStorage
+    // Rebuild shuffle queue with new order
+    if (isShuffleRef.current) {
+      buildShuffleQueue(currentIndexRef.current);
+    }
+
     try {
       localStorage.setItem(
         STORAGE_PLAYLIST_KEY,
@@ -335,18 +418,13 @@ export function useAudioPlayer() {
     } catch (e) {
       console.warn('Failed to save playlist order:', e);
     }
-  }, []);
+  }, [buildShuffleQueue]);
 
-  // ─── Playlist open/close ─────────────────────────────────────────────────
-  const togglePlaylist = useCallback(() => {
-    setIsPlaylistOpen((prev) => !prev);
-  }, []);
+  // ── Playlist open/close ───────────────────────────────────────────────
+  const togglePlaylist = useCallback(() => setIsPlaylistOpen((prev) => !prev), []);
+  const closePlaylist = useCallback(() => setIsPlaylistOpen(false), []);
 
-  const closePlaylist = useCallback(() => {
-    setIsPlaylistOpen(false);
-  }, []);
-
-  // ─── Global Keyboard Shortcuts ───────────────────────────────────────────
+  // ── Global Keyboard Shortcuts ─────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -369,12 +447,20 @@ export function useAudioPlayer() {
           e.preventDefault();
           closePlaylist();
           break;
+        case 'KeyS':
+          e.preventDefault();
+          toggleShuffle();
+          break;
+        case 'KeyR':
+          e.preventDefault();
+          cycleRepeat();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, next, previous, closePlaylist]);
+  }, [togglePlay, next, previous, closePlaylist, toggleShuffle, cycleRepeat]);
 
   return {
     playlist,
@@ -388,6 +474,8 @@ export function useAudioPlayer() {
     error,
     isPlaylistOpen,
     dataSource,
+    isShuffle,
+    repeatMode,
     togglePlay,
     selectTrack,
     next,
@@ -396,5 +484,7 @@ export function useAudioPlayer() {
     reorderPlaylist,
     togglePlaylist,
     closePlaylist,
+    toggleShuffle,
+    cycleRepeat,
   };
 }
