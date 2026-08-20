@@ -26,8 +26,8 @@ Open the site → see the background → press play → music starts. That's it.
 - 🔄 **Automatic next-track** — playlist advances without user interaction
 - 📋 **Expandable playlist** — bottom sheet with drag-and-drop reordering
 - 🔀 **User-defined playback order** — drag tracks, session is persisted in localStorage
-- ☁️ **Backblaze B2 integration** — auto-discovers music from your S3-compatible bucket
-- 🔒 **Secure** — B2 credentials stay server-side only, never in the browser bundle
+- ☁️ **Cloudflare R2 integration** — auto-discovers music from your R2 bucket
+- 🔒 **Secure** — R2 credentials stay server-side only, never in the browser bundle
 - ⌨️ **Keyboard shortcuts** — Space, ←, →, Escape
 - ♿ **Accessible** — ARIA labels, focus states, keyboard navigation
 - 📱 **Mobile-safe** — safe-area insets, swipe-down to close, correct touch targets
@@ -46,10 +46,8 @@ npm install
 
 ```bash
 cp .env.example .env
-# Edit .env with your Backblaze B2 credentials
+# Edit .env with your Cloudflare R2 credentials
 ```
-
-> If you skip this step, the player works with 5 built-in demo tracks.
 
 ### 3. Add Background Images
 
@@ -83,54 +81,65 @@ npm start          # Serves frontend + API from a single Express server
 
 ---
 
-## Backblaze B2 Configuration
+## Cloudflare R2 Configuration
 
-### Create Your Bucket
+### Create Your R2 Bucket
 
-1. Log into [Backblaze B2](https://www.backblaze.com/b2/cloud-storage.html)
-2. Create a bucket (Private recommended)
-3. Upload your MP3/M4A/WAV/FLAC/OGG files
+1. Log into [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Go to **R2 Object Storage** → **Create Bucket**
+3. Upload your MP3/M4A/WAV/FLAC/OGG files to the bucket
 
-### Create an Application Key
+### Create an R2 API Token
 
-1. Go to **App Keys** → **Add a New Application Key**
-2. Allow access to your music bucket only
-3. Permissions: Read Only is sufficient (`readFiles`, `listFiles`)
-4. Copy the Key ID and Application Key (shown once)
+1. Go to **R2 Object Storage** → **Manage R2 API Tokens** → **Create API Token**
+2. Set permissions to **Object Read** (read-only is sufficient)
+3. Optionally restrict the token to your specific bucket
+4. Copy the **Access Key ID** and **Secret Access Key** (shown once)
+5. Copy your **Cloudflare Account ID** from the dashboard right sidebar
 
 ### Configure `.env`
 
 ```env
-B2_ENDPOINT=s3.us-west-004.backblazeb2.com
-B2_REGION=us-west-004
-B2_BUCKET_NAME=your-bucket-name
-B2_APPLICATION_KEY_ID=your-key-id
-B2_APPLICATION_KEY=your-secret-key
-B2_IS_PRIVATE=true
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+R2_BUCKET_NAME=your-music-bucket-name
+R2_IS_PRIVATE=true
 ```
 
-> Find your endpoint on the **Bucket Settings** page in Backblaze.
+### Private vs Public Buckets
 
-### CORS for Backblaze (Public Buckets)
+**Private bucket** (`R2_IS_PRIVATE=true`) — Recommended for production:
+- The server generates presigned URLs that expire after 2 hours
+- No CORS configuration needed on the bucket itself
+- Credentials never leave your server
 
-If `B2_IS_PRIVATE=false` (public bucket), browsers need CORS headers from B2 directly.
+**Public bucket** (`R2_IS_PRIVATE=false`):
+- Enable the public URL in Cloudflare R2 → Bucket Settings → **Public Access**
+- Set `R2_PUBLIC_URL` to your public bucket URL or custom domain:
+  ```env
+  R2_PUBLIC_URL=https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev
+  # or with a custom domain:
+  R2_PUBLIC_URL=https://music.yourdomain.com
+  ```
 
-In Backblaze → Bucket → **CORS Rules**, add:
+### CORS for Public Buckets
+
+If using a public bucket (`R2_IS_PRIVATE=false`), add a CORS policy in **R2 → Bucket → Settings → CORS Policy**:
 
 ```json
 [
   {
-    "corsRuleName": "audio-streaming",
-    "allowedOrigins": ["https://your-domain.com", "http://localhost:5173"],
-    "allowedHeaders": ["*"],
-    "allowedOperations": ["b2_download_file_by_id", "b2_download_file_by_name"],
-    "exposeHeaders": ["Content-Range", "Accept-Ranges", "Content-Length"],
-    "maxAgeSeconds": 3600
+    "AllowedOrigins": ["https://your-domain.com", "http://localhost:5173"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["Content-Range", "Accept-Ranges", "Content-Length"],
+    "MaxAgeSeconds": 3600
   }
 ]
 ```
 
-> If `B2_IS_PRIVATE=true`, CORS is not required since audio is served via presigned URLs which include all necessary headers.
+> If `R2_IS_PRIVATE=true`, CORS is not required since audio is served via presigned URLs which include all necessary headers.
 
 ---
 
@@ -144,11 +153,11 @@ GET /api/tracks
 
 The backend:
 
-1. Connects to your Backblaze B2 bucket using the AWS SDK (S3-compatible)
+1. Connects to your Cloudflare R2 bucket using the AWS SDK (S3-compatible API)
 2. Lists all objects, handling pagination automatically (works with 1000+ songs)
 3. Filters for audio files only (`.mp3`, `.m4a`, `.aac`, `.wav`, `.ogg`, `.flac`, `.opus`)
 4. Sorts them alphabetically/numerically
-5. Generates secure URLs (presigned for private, direct for public)
+5. Generates secure URLs (presigned for private, direct CDN for public)
 6. Returns a clean JSON list of tracks
 
 Upload a new song → it appears on the site on next page load. No code changes needed.
@@ -217,13 +226,13 @@ Browser AudioElement (single persistent instance)
 
 | What | Where | Status |
 |---|---|---|
-| `B2_APPLICATION_KEY` | Server `.env` only | ✅ Never leaves server |
-| `B2_APPLICATION_KEY_ID` | Server `.env` only | ✅ Never leaves server |
+| `R2_SECRET_ACCESS_KEY` | Server `.env` only | ✅ Never leaves server |
+| `R2_ACCESS_KEY_ID` | Server `.env` only | ✅ Never leaves server |
 | Presigned URLs | Generated server-side, expire in 2h | ✅ Time-limited |
-| Track list | Fetched via `/api/tracks`, only name + URL | ✅ No raw B2 metadata |
+| Track list | Fetched via `/api/tracks`, only name + URL | ✅ No raw R2 metadata |
 | Frontend bundle | Contains no credentials | ✅ Safe to inspect |
 
-Run `grep -r "APPLICATION_KEY" dist/` after building — it should return nothing.
+Run `grep -r "SECRET_ACCESS_KEY" dist/` after building — it should return nothing.
 
 ---
 
@@ -249,7 +258,7 @@ driving-vibes/
 │   └── favicon.svg
 │
 ├── server/
-│   └── index.js                    ← Express API (B2 integration, CORS)
+│   └── index.js                    ← Express API (R2 integration, CORS)
 │
 ├── src/
 │   ├── components/
