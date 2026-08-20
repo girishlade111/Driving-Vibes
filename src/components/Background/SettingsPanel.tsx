@@ -326,8 +326,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       }`}
                       style={{
                         backgroundColor: preset.preview,
-                        ringColor: preset.preview,
-                        boxShadow: active ? `0 0 0 2px ${preset.preview}55` : undefined,
+                        boxShadow: active
+                          ? `0 0 0 2px rgba(0,0,0,0.6), 0 0 0 4px ${preset.preview}`
+                          : undefined,
                       }}
                     />
                   );
