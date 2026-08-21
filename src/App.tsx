@@ -231,7 +231,7 @@ export const App: React.FC = () => {
     isPlaying,
     currentTime,
     playlist,
-    onSelectTrack: (index: number) => selectTrack(index, true),
+    onSelectTrack: (track) => { const idx = playlist.findIndex((t) => t.id === track.id); if (idx !== -1) selectTrack(idx, true); },
     onTogglePlay: togglePlay,
     onSeek: seek,
   });
