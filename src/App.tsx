@@ -413,38 +413,40 @@ export const App: React.FC = () => {
         onReorder={reorderPlaylist}
       />
 
-      {/* z-30 — Mini player */}
-      <MiniPlayer
-        currentTrack={currentTrack}
-        isPlaying={isPlaying}
-        isLoading={isLoading}
-        isTracksLoading={isTracksLoading}
-        currentTime={currentTime}
-        duration={duration}
-        isPlaylistOpen={isPlaylistOpen}
-        isShuffle={isShuffle}
-        repeatMode={repeatMode}
-        playerPosition={playerPosition}
-        volume={volume}
-        isMuted={isMuted}
-        ambientActiveCount={ambient.activeCount}
-        onTogglePlay={togglePlay}
-        onPrevious={previous}
-        onNext={next}
-        onTogglePlaylist={togglePlaylist}
-        onSeek={seek}
-        onToggleShuffle={toggleShuffle}
-        onCycleRepeat={cycleRepeat}
-        onSetVolume={setVolume}
-        onToggleMute={toggleMute}
-        onShare={handleShare}
-        onToggleAmbientMixer={ambient.toggleMixer}
-        onToggleAudioFx={eq.toggleEq}
-        onOpenCarMode={() => setIsCarModeOpen(true)}
-        onOpenFocusModal={() => setIsFocusOpen(true)}
-        onOpenPostcardModal={() => setIsPostcardOpen(true)}
-        onOpenTripModal={trip.openTripModal}
-      />
+      {/* z-30 — Mini player (hidden while inside Car Dashboard HUD to prevent overlapping/clashing) */}
+      {!isCarModeOpen && (
+        <MiniPlayer
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          isLoading={isLoading}
+          isTracksLoading={isTracksLoading}
+          currentTime={currentTime}
+          duration={duration}
+          isPlaylistOpen={isPlaylistOpen}
+          isShuffle={isShuffle}
+          repeatMode={repeatMode}
+          playerPosition={playerPosition}
+          volume={volume}
+          isMuted={isMuted}
+          ambientActiveCount={ambient.activeCount}
+          onTogglePlay={togglePlay}
+          onPrevious={previous}
+          onNext={next}
+          onTogglePlaylist={togglePlaylist}
+          onSeek={seek}
+          onToggleShuffle={toggleShuffle}
+          onCycleRepeat={cycleRepeat}
+          onSetVolume={setVolume}
+          onToggleMute={toggleMute}
+          onShare={handleShare}
+          onToggleAmbientMixer={ambient.toggleMixer}
+          onToggleAudioFx={eq.toggleEq}
+          onOpenCarMode={() => setIsCarModeOpen(true)}
+          onOpenFocusModal={() => setIsFocusOpen(true)}
+          onOpenPostcardModal={() => setIsPostcardOpen(true)}
+          onOpenTripModal={trip.openTripModal}
+        />
+      )}
 
       {/* ── Feature Modals ── */}
 
@@ -506,6 +508,8 @@ export const App: React.FC = () => {
         isVoiceSupported={voice.isSupported}
         lastVoiceCommand={voice.lastCommand}
         onToggleVoice={voice.toggleListening}
+        playlist={playlist}
+        onSelectTrack={(index) => selectTrack(index, true)}
       />
 
 

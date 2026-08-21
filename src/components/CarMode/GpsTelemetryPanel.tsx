@@ -1,7 +1,7 @@
 import React from 'react';
 import { GpsTelemetry, SpeedUnit } from '../../hooks/useGpsSpeedometer';
 import { HudThemeConfig } from './carModeTypes';
-import { Navigation, Compass, Mountain, MapPin, Activity, RotateCcw } from 'lucide-react';
+import { Navigation, Compass, Mountain, Timer, RotateCcw, MapPin, Activity } from 'lucide-react';
 
 interface GpsTelemetryPanelProps {
   telemetry: GpsTelemetry;
@@ -26,8 +26,11 @@ export const GpsTelemetryPanel: React.FC<GpsTelemetryPanelProps> = ({
     return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
   };
 
-  const distance = unit === 'km/h' ? `${telemetry.tripDistanceKm} km` : `${telemetry.tripDistanceMiles} mi`;
-  const avgSpeed = unit === 'km/h' ? `${telemetry.avgSpeedKmh} km/h` : `${telemetry.avgSpeedMph} mph`;
+  const distance =
+    unit === 'km/h'
+      ? `${telemetry.tripDistanceKm.toFixed(2)} km`
+      : `${telemetry.tripDistanceMiles.toFixed(2)} mi`;
+
   const altitude =
     telemetry.altitude !== null
       ? unit === 'km/h'
@@ -36,17 +39,19 @@ export const GpsTelemetryPanel: React.FC<GpsTelemetryPanelProps> = ({
       : '—';
 
   const headingDeg = telemetry.heading !== null ? `${Math.round(telemetry.heading)}°` : '—';
-  const coordsStr =
-    telemetry.latitude !== null && telemetry.longitude !== null
-      ? `${telemetry.latitude.toFixed(4)}°, ${telemetry.longitude.toFixed(4)}°`
-      : 'Acquiring GPS Fix…';
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full max-w-2xl mx-auto select-none">
-      {/* 1. Compass & Heading */}
-      <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 w-full max-w-3xl mx-auto select-none">
+      {/* 1. Compass & Realtime Heading */}
+      <div
+        className="flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-xl transition-all duration-300 shadow-lg"
+        style={{
+          backgroundColor: theme.cardBg,
+          borderColor: theme.borderColor,
+        }}
+      >
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 transition-transform duration-500"
+          className="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 transition-transform duration-500 shadow-inner"
           style={{
             backgroundColor: `${theme.primaryColor}15`,
             borderColor: `${theme.primaryColor}40`,
@@ -60,18 +65,25 @@ export const GpsTelemetryPanel: React.FC<GpsTelemetryPanelProps> = ({
             }}
           />
         </div>
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
             Heading
           </div>
-          <div className="text-xs font-bold font-mono text-white truncate">
-            {telemetry.cardinalHeading} <span className="text-[10px] text-white/50">{headingDeg}</span>
+          <div className="text-sm font-extrabold font-mono text-white truncate flex items-baseline gap-1.5">
+            <span>{telemetry.cardinalHeading}</span>
+            <span className="text-[11px] font-medium text-white/50">{headingDeg}</span>
           </div>
         </div>
       </div>
 
       {/* 2. Trip Distance Odometer */}
-      <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md">
+      <div
+        className="flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-xl transition-all duration-300 shadow-lg group"
+        style={{
+          backgroundColor: theme.cardBg,
+          borderColor: theme.borderColor,
+        }}
+      >
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0"
           style={{
@@ -82,16 +94,33 @@ export const GpsTelemetryPanel: React.FC<GpsTelemetryPanelProps> = ({
         >
           <Navigation className="w-5 h-5" />
         </div>
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
-            Odometer
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+              Odometer
+            </span>
+            <button
+              onClick={telemetry.resetTrip}
+              title="Reset Trip Odometer"
+              className="text-white/30 hover:text-white/80 transition-colors p-0.5"
+            >
+              <RotateCcw className="w-3 h-3" />
+            </button>
           </div>
-          <div className="text-xs font-bold font-mono text-white truncate">{distance}</div>
+          <div className="text-sm font-extrabold font-mono text-white truncate">
+            {distance}
+          </div>
         </div>
       </div>
 
-      {/* 3. Elevation / Altitude */}
-      <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md">
+      {/* 3. Elevation & GPS Accuracy */}
+      <div
+        className="flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-xl transition-all duration-300 shadow-lg"
+        style={{
+          backgroundColor: theme.cardBg,
+          borderColor: theme.borderColor,
+        }}
+      >
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center border shrink-0"
           style={{
@@ -102,24 +131,37 @@ export const GpsTelemetryPanel: React.FC<GpsTelemetryPanelProps> = ({
         >
           <Mountain className="w-5 h-5" />
         </div>
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
-            Elevation
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+            Elevation MSL
           </div>
-          <div className="text-xs font-bold font-mono text-white truncate">{altitude}</div>
+          <div className="text-sm font-extrabold font-mono text-white truncate flex items-baseline gap-1.5">
+            <span>{altitude}</span>
+            {telemetry.accuracyMeters !== null && (
+              <span className="text-[10px] text-white/40 font-normal">
+                ±{telemetry.accuracyMeters}m
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 4. Trip Time & Average Speed */}
-      <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md">
+      {/* 4. Trip Duration Timer */}
+      <div
+        className="flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-xl transition-all duration-300 shadow-lg"
+        style={{
+          backgroundColor: theme.cardBg,
+          borderColor: theme.borderColor,
+        }}
+      >
         <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-white/70 flex items-center justify-center shrink-0">
-          <Activity className="w-5 h-5 text-amber-400" />
+          <Timer className="w-5 h-5 text-amber-400" />
         </div>
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
             Trip Time
           </div>
-          <div className="text-xs font-bold font-mono text-white truncate">
+          <div className="text-sm font-extrabold font-mono text-white truncate">
             {formatTripTime(tripSeconds)}
           </div>
         </div>
