@@ -31,6 +31,7 @@ import {
   ColorFilterId,
   BadgeId,
   BackdropSource,
+  SizeOption,
 } from './postcardTypes';
 import {
   TEMPLATES,

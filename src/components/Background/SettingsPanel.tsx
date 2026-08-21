@@ -486,7 +486,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 Overlays
               </p>
               <ToggleRow
-                icon={<Sparkles className="w-3.5 h-3.5 text-white/45" />}
+                icon={<AudioLines className="w-3.5 h-3.5 text-white/45" />}
                 label="Now Playing"
                 active={showNowPlaying}
                 ariaLabel={showNowPlaying ? 'Hide now playing overlay' : 'Show now playing overlay'}
