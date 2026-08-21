@@ -95,6 +95,14 @@ export const Background: React.FC<BackgroundProps> = ({
       className="fixed inset-0 w-full h-full min-h-[100dvh] overflow-hidden pointer-events-none select-none z-0 bg-black"
       aria-hidden="true"
     >
+      {/* ── Base Ambient Glow Gradient (Prevents pitch-black flash) ── */}
+      <div
+        className="absolute inset-0 w-full h-full"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 30%, rgba(35, 20, 50, 0.45) 0%, rgba(10, 8, 18, 0.85) 65%, #050508 100%)',
+        }}
+      />
+
       {/* ── Layer: Video Background ── */}
       {isVideo && videoSrc && !videoError ? (
         <video
@@ -123,14 +131,13 @@ export const Background: React.FC<BackgroundProps> = ({
             <source media="(max-width: 767px)" srcSet={activeMobileSrc} />
             <source media="(min-width: 768px)" srcSet={activeDesktopSrc} />
             <img
-              key={`${currentPreset?.id || 'default'}-${customMediaUrl || activeDesktopSrc}`}
               src={customMediaUrl || activeDesktopSrc}
               alt=""
               role="presentation"
-              className={`w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-700 ease-out ${
-                staticLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
+              className="w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-500 ease-out"
+              style={{ opacity: staticLoaded ? 1 : 0.8 }}
               onLoad={() => setStaticLoaded(true)}
+              onError={() => setStaticLoaded(true)}
               decoding="async"
               loading="eager"
               fetchPriority="high"
