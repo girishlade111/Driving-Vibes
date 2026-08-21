@@ -10,6 +10,7 @@ import { AudioFxModal } from './components/AudioFx/AudioFxModal';
 import { CarModeOverlay } from './components/CarMode/CarModeOverlay';
 
 import { VirtualTripModal } from './components/Social/VirtualTripModal';
+import { LiveCounterBadge } from './components/Social/LiveCounterBadge';
 import { PostcardModal } from './components/Postcard/PostcardModal';
 import { FocusTimerModal } from './components/Focus/FocusTimerModal';
 import { RainGlassCanvas } from './components/InteractiveCanvas/RainGlassCanvas';
@@ -411,6 +412,11 @@ export const App: React.FC = () => {
         onOpenPostcardModal={() => setIsPostcardOpen(true)}
         onOpenTripModal={trip.openTripModal}
       />
+
+      {/* z-30 — Real-Time Live Listeners Counter Badge */}
+      <div className="fixed top-4 right-16 z-30">
+        <LiveCounterBadge />
+      </div>
 
       {/* z-29 — Music wave visualizer */}
       <MusicWave isVisible={showWave} isPlaying={isPlaying} playerPosition={playerPosition} />
