@@ -5,16 +5,8 @@ import {
   Check,
   X,
   RefreshCw,
-  Navigation,
-  Volume2,
-  Radio,
   Send,
   Zap,
-  Coffee,
-  Flame,
-  Hand,
-  Sparkles,
-  Compass,
   MapPin,
 } from 'lucide-react';
 import { TripRoute, TRIP_ROUTES } from '../../types/virtualTrip';
