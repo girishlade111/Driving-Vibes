@@ -174,15 +174,11 @@ app.get('/api/tracks', async (req, res) => {
         const key = file.Key;
         let url = '';
 
-        if (R2_IS_PRIVATE) {
-          // Presigned URL valid for 2 hours — sufficient for a listening session
-          const getCmd = new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key });
-          url = await getSignedUrl(r2Client, getCmd, { expiresIn: 7200 });
-        } else {
-          // Direct public CDN URL — requires R2_PUBLIC_URL to be set
-          // e.g. R2_PUBLIC_URL=https://pub-xxxxxxxx.r2.dev  (or custom domain)
-          const baseUrl = (R2_PUBLIC_URL || '').replace(/\/$/, '');
+        if (R2_PUBLIC_URL) {
+          const baseUrl = R2_PUBLIC_URL.replace(/\/$/, '');
           url = `${baseUrl}/${encodeURI(key)}`;
+        } else {
+          url = `/api/stream?key=${encodeURIComponent(key)}`;
         }
 
         return {
@@ -210,6 +206,42 @@ app.get('/api/tracks', async (req, res) => {
       error: 'Unable to connect to Cloudflare R2 storage. Check your credentials and bucket settings.',
       tracks: [],
     });
+  }
+});
+
+// ── GET /api/stream ───────────────────────────────────────────────────────
+app.get('/api/stream', async (req, res) => {
+  const { key } = req.query;
+  if (!key) return res.status(400).send('Missing key parameter');
+
+  const { R2_BUCKET_NAME } = process.env;
+  const r2Client = getR2Client();
+  if (!r2Client || !R2_BUCKET_NAME) return res.status(500).send('R2 not configured');
+
+  try {
+    const range = req.headers.range;
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      Range: range,
+    });
+
+    const data = await r2Client.send(command);
+
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (data.ContentType) res.setHeader('Content-Type', data.ContentType);
+    if (data.ContentLength) res.setHeader('Content-Length', data.ContentLength);
+    if (data.ContentRange) {
+      res.setHeader('Content-Range', data.ContentRange);
+      res.status(206);
+    } else {
+      res.status(200);
+    }
+
+    data.Body.pipe(res);
+  } catch (err) {
+    console.error('[Stream] Error streaming file:', err);
+    res.status(500).send('Error streaming audio');
   }
 });
 
