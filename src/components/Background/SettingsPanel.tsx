@@ -419,7 +419,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             <div className="h-px bg-white/8" />
 
-            {/* ── Visual Layers (Interactive Rain & Speed Particles) ── */}
+            {/* ── Interactive Visual Effects ── */}
             <div>
               <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40 mb-2.5">
                 Interactive Visual Effects
@@ -438,6 +438,34 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   active={showSpeedParticles}
                   ariaLabel="Toggle 3D speed particles"
                   onClick={onToggleSpeedParticles}
+                />
+                <ToggleRow
+                  icon={<Sparkles className="w-3.5 h-3.5 text-yellow-300" />}
+                  label="Glowing Fireflies (Mouse Drift)"
+                  active={showFireflies}
+                  ariaLabel="Toggle glowing fireflies effect"
+                  onClick={onToggleFireflies}
+                />
+                <ToggleRow
+                  icon={<Stars className="w-3.5 h-3.5 text-cyan-300" />}
+                  label="Shooting Stars (Tap Starburst)"
+                  active={showShootingStars}
+                  ariaLabel="Toggle shooting stars and starburst"
+                  onClick={onToggleShootingStars}
+                />
+                <ToggleRow
+                  icon={<Waves className="w-3.5 h-3.5 text-emerald-300" />}
+                  label="Northern Lights Aurora"
+                  active={showAurora}
+                  ariaLabel="Toggle aurora borealis effect"
+                  onClick={onToggleAurora}
+                />
+                <ToggleRow
+                  icon={<Film className="w-3.5 h-3.5 text-purple-300" />}
+                  label="Retro Lo-Fi CRT & Film Grain"
+                  active={showFilmGrain}
+                  ariaLabel="Toggle retro film grain and CRT scanlines"
+                  onClick={onToggleFilmGrain}
                 />
               </div>
             </div>
