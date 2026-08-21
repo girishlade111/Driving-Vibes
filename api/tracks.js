@@ -116,13 +116,12 @@ export default async function handler(req, res) {
         const key = file.Key;
         let url = '';
 
-        if (R2_IS_PRIVATE) {
-          // Presigned URL valid for 2 hours
-          const getCmd = new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key });
-          url = await getSignedUrl(r2Client, getCmd, { expiresIn: 7200 });
-        } else {
-          const baseUrl = (R2_PUBLIC_URL || '').replace(/\/$/, '');
+        if (R2_PUBLIC_URL) {
+          const baseUrl = R2_PUBLIC_URL.replace(/\/$/, '');
           url = `${baseUrl}/${encodeURI(key)}`;
+        } else {
+          // Stream directly through Vercel serverless audio endpoint with full Range & CORS support
+          url = `/api/stream?key=${encodeURIComponent(key)}`;
         }
 
         return {
