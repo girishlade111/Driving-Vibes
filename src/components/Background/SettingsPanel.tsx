@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Settings, Sparkles, AudioLines, AlignCenter, PanelBottom,
   Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, Film, SunMedium,
-  Radio, Timer, Camera, Users, Droplets, Zap,
+  Timer, Camera, Users, Droplets, Zap,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 import { SleepTimerOption } from '../../hooks/useAudioPlayer';
@@ -47,7 +47,6 @@ interface SettingsPanelProps {
   onOpenAudioFx?: () => void;
   onOpenCarMode?: () => void;
   onOpenDjModal?: () => void;
-  onOpenRadioModal?: () => void;
   onOpenFocusModal?: () => void;
   onOpenPostcardModal?: () => void;
   onOpenTripModal?: () => void;
@@ -181,7 +180,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onOpenAudioFx,
   onOpenCarMode,
   onOpenDjModal,
-  onOpenRadioModal,
   onOpenFocusModal,
   onOpenPostcardModal,
   onOpenTripModal,
@@ -291,15 +289,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </button>
                 )}
 
-                {onOpenRadioModal && (
-                  <button
-                    onClick={() => { setIsOpen(false); onOpenRadioModal(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/8 hover:border-rose-400/30 text-white/70 hover:text-rose-300 transition-all text-center"
-                  >
-                    <Radio className="w-4 h-4 text-rose-400" />
-                    <span className="text-[10px] font-medium">24/7 Radio</span>
-                  </button>
-                )}
+
 
                 {onOpenDjModal && (
                   <button

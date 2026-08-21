@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, ListMusic, Loader2,
   Shuffle, Repeat, Repeat1, Volume2, Volume1, VolumeX, Share2, Check,
-  CloudRain, Sliders, Car, Radio, Timer, Camera, Users,
+  CloudRain, Sliders, Car, Timer, Camera, Users,
 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RepeatMode } from '../../hooks/useAudioPlayer';
@@ -35,7 +35,6 @@ interface MiniPlayerProps {
   onToggleAmbientMixer?: () => void;
   onToggleAudioFx?: () => void;
   onOpenCarMode?: () => void;
-  onOpenRadioModal?: () => void;
   onOpenFocusModal?: () => void;
   onOpenPostcardModal?: () => void;
   onOpenTripModal?: () => void;
@@ -68,7 +67,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onToggleAmbientMixer,
   onToggleAudioFx,
   onOpenCarMode,
-  onOpenRadioModal,
   onOpenFocusModal,
   onOpenPostcardModal,
   onOpenTripModal,
@@ -289,17 +287,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             </button>
           )}
 
-          {/* 24/7 Live Radio */}
-          {onOpenRadioModal && (
-            <button
-              onClick={onOpenRadioModal}
-              aria-label="24/7 Live Radio Streams"
-              title="24/7 Live Lo-Fi Radio [R]"
-              className={iconBtn(false, 'hidden sm:flex')}
-            >
-              <Radio className="w-3.5 h-3.5 text-rose-300" />
-            </button>
-          )}
+
 
           {/* Postcard Generator */}
           {onOpenPostcardModal && (
