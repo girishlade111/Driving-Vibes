@@ -215,7 +215,6 @@ export const App: React.FC = () => {
     cancelSleepTimer,
     shareCurrentTrack,
     audioRef,
-    addCustomTracks,
   } = useAudioPlayer(startTracking, pauseTracking, resumeTracking);
 
   // Cleanup stats tracking on unmount
@@ -240,7 +239,7 @@ export const App: React.FC = () => {
     isPlaying,
     currentTime,
     playlist,
-    onSelectTrack: handleSelectTrack,
+    onSelectTrack: (index: number) => selectTrack(index, true),
     onTogglePlay: togglePlay,
     onSeek: seek,
   });
