@@ -243,7 +243,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           </p>
         </div>
 
-        {/* ── Right Feature Buttons: Ambient Mixer + Audio FX + Focus + Radio + Car Mode ── */}
+        {/* ── Right Feature Buttons: Ambient Mixer + Audio FX + Focus + Postcard + Trip + Car Mode ── */}
         <div className="flex items-center gap-0.5 shrink-0">
 
           {/* Ambient Mixer */}
