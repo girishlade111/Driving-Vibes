@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Settings, Sparkles, AudioLines, AlignCenter, PanelBottom,
+  Settings, AudioLines, AlignCenter, PanelBottom,
   Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, Film, SunMedium,
   Timer, Camera, Users, Droplets, Zap,
 } from 'lucide-react';
@@ -46,7 +46,6 @@ interface SettingsPanelProps {
   onOpenAmbientMixer?: () => void;
   onOpenAudioFx?: () => void;
   onOpenCarMode?: () => void;
-  onOpenDjModal?: () => void;
   onOpenFocusModal?: () => void;
   onOpenPostcardModal?: () => void;
   onOpenTripModal?: () => void;
@@ -179,7 +178,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onOpenAmbientMixer,
   onOpenAudioFx,
   onOpenCarMode,
-  onOpenDjModal,
   onOpenFocusModal,
   onOpenPostcardModal,
   onOpenTripModal,
@@ -291,15 +289,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
 
 
-                {onOpenDjModal && (
-                  <button
-                    onClick={() => { setIsOpen(false); onOpenDjModal(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-pink-500/20 border border-white/8 hover:border-pink-400/30 text-white/70 hover:text-pink-300 transition-all text-center"
-                  >
-                    <Sparkles className="w-4 h-4 text-pink-400" />
-                    <span className="text-[10px] font-medium">AI DJ Host</span>
-                  </button>
-                )}
+
 
                 {onOpenPostcardModal && (
                   <button

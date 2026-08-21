@@ -8,7 +8,7 @@ import { NowPlayingOverlay } from './components/NowPlayingOverlay/NowPlayingOver
 import { AmbientMixerModal } from './components/AmbientMixer/AmbientMixerModal';
 import { AudioFxModal } from './components/AudioFx/AudioFxModal';
 import { CarModeOverlay } from './components/CarMode/CarModeOverlay';
-import { AiDjModal } from './components/AiDj/AiDjModal';
+
 import { VirtualTripModal } from './components/Social/VirtualTripModal';
 import { PostcardModal } from './components/Postcard/PostcardModal';
 import { FocusTimerModal } from './components/Focus/FocusTimerModal';
@@ -19,10 +19,10 @@ import { useListeningStats } from './hooks/useListeningStats';
 import { useAmbientMixer } from './hooks/useAmbientMixer';
 import { useAudioEqualizer } from './hooks/useAudioEqualizer';
 import { useVoiceCommands } from './hooks/useVoiceCommands';
-import { useAiDjHost } from './hooks/useAiDjHost';
+
 import { useVirtualTrip } from './hooks/useVirtualTrip';
 import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from './types/backgroundPresets';
-import { AlertCircle, Radio as RadioIcon } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export type PlayerPosition = 'center' | 'bottom';
 
@@ -225,7 +225,6 @@ export const App: React.FC = () => {
   // ── Flagship Features ─────────────────────────────────────────────────
   const ambient = useAmbientMixer();
   const eq = useAudioEqualizer(audioRef);
-  const dj = useAiDjHost();
   const trip = useVirtualTrip({
     currentTrack,
     isPlaying,
@@ -235,15 +234,6 @@ export const App: React.FC = () => {
     onTogglePlay: togglePlay,
     onSeek: seek,
   });
-
-  // Announce track when changed if AI DJ enabled
-  const announceTrackFn = dj.announceTrack;
-  const isDjEnabled = dj.settings.isEnabled;
-  useEffect(() => {
-    if (currentTrack && isDjEnabled) {
-      announceTrackFn(currentTrack.name, currentTrack.id);
-    }
-  }, [currentTrack?.id, isDjEnabled, announceTrackFn]);
 
   // ── Voice Commands ────────────────────────────────────────────────────
   const voice = useVoiceCommands({
@@ -281,14 +271,11 @@ export const App: React.FC = () => {
       } else if (e.code === 'KeyP') {
         e.preventDefault();
         setIsFocusOpen((p) => !p);
-      } else if (e.code === 'KeyD') {
-        e.preventDefault();
-        dj.toggleDjModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTrack, ambient, eq, dj]);
+  }, [ambient, eq]);
 
   // ── Sleep timer cancel shortcut wrapper ───────────────────────────────
   const handleSetSleepTimer = useCallback(
@@ -370,7 +357,6 @@ export const App: React.FC = () => {
         onOpenAmbientMixer={ambient.openMixer}
         onOpenAudioFx={eq.openEq}
         onOpenCarMode={() => setIsCarModeOpen(true)}
-        onOpenDjModal={dj.openDjModal}
         onOpenFocusModal={() => setIsFocusOpen(true)}
         onOpenPostcardModal={() => setIsPostcardOpen(true)}
         onOpenTripModal={trip.openTripModal}
@@ -386,16 +372,7 @@ export const App: React.FC = () => {
         isEnabled={showNowPlaying}
       />
 
-      {/* AI DJ Live Announcement banner */}
-      {dj.currentAnnouncement && (
-        <aside
-          aria-live="polite"
-          className="fixed top-14 left-1/2 -translate-x-1/2 z-45 px-5 py-2 rounded-full glass-player border border-pink-400/40 text-pink-200 text-xs flex items-center space-x-2 animate-slideUp shadow-xl"
-        >
-          <RadioIcon className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
-          <span className="font-medium">AI DJ: {dj.currentAnnouncement}</span>
-        </aside>
-      )}
+
 
       {/* z-40 — Error toast */}
       {error && (
@@ -531,17 +508,7 @@ export const App: React.FC = () => {
         onToggleVoice={voice.toggleListening}
       />
 
-      {/* 4. AI DJ & Radio Host Modal */}
-      <AiDjModal
-        isOpen={dj.isDjModalOpen}
-        onClose={dj.closeDjModal}
-        settings={dj.settings}
-        isSpeaking={dj.isSpeaking}
-        onToggleMaster={dj.toggleDjMaster}
-        onSetPersona={dj.setPersona}
-        onUpdateSetting={dj.updateSetting}
-        onTestSpeak={dj.testSpeak}
-      />
+
 
       {/* 5. Virtual Road Trip (Listen Together) */}
       <VirtualTripModal tripState={trip} />
