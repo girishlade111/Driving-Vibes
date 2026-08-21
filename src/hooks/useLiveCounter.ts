@@ -22,7 +22,7 @@ export function useLiveCounter(customWsUrl?: string): UseLiveCounterResult {
   const wsUrl =
     customWsUrl ||
     (typeof window !== 'undefined' && (window as any).LIVE_COUNTER_WS_URL) ||
-    (import.meta.env.VITE_LIVE_COUNTER_WS_URL as string) ||
+    ((import.meta as any).env?.VITE_LIVE_COUNTER_WS_URL as string) ||
     DEFAULT_WS_URL;
   
   const wsRef = useRef<WebSocket | null>(null);
