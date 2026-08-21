@@ -187,6 +187,7 @@ export function useAudioPlayer(
   // ── Initialize Audio element once on mount ────────────────────────────
   useEffect(() => {
     const audio = new Audio();
+    audio.crossOrigin = 'anonymous';
     audio.preload = 'metadata';
     audio.volume = isMutedRef.current ? 0 : volumeRef.current;
     audioRef.current = audio;
