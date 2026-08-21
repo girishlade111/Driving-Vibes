@@ -12,7 +12,6 @@ import { AiDjModal } from './components/AiDj/AiDjModal';
 import { VirtualTripModal } from './components/Social/VirtualTripModal';
 import { PostcardModal } from './components/Postcard/PostcardModal';
 import { FocusTimerModal } from './components/Focus/FocusTimerModal';
-import { RadioStationModal } from './components/Radio/RadioStationModal';
 import { RainGlassCanvas } from './components/InteractiveCanvas/RainGlassCanvas';
 import { SpeedParticlesCanvas } from './components/InteractiveCanvas/SpeedParticlesCanvas';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
@@ -116,7 +115,6 @@ export const App: React.FC = () => {
   const [isCarModeOpen, setIsCarModeOpen]   = useState<boolean>(false);
   const [isPostcardOpen, setIsPostcardOpen] = useState<boolean>(false);
   const [isFocusOpen, setIsFocusOpen]       = useState<boolean>(false);
-  const [isRadioOpen, setIsRadioOpen]       = useState<boolean>(false);
 
   // Apply accent color on mount
   useEffect(() => {
@@ -382,7 +380,6 @@ export const App: React.FC = () => {
         onOpenAudioFx={eq.openEq}
         onOpenCarMode={() => setIsCarModeOpen(true)}
         onOpenDjModal={dj.openDjModal}
-        onOpenRadioModal={() => setIsRadioOpen(true)}
         onOpenFocusModal={() => setIsFocusOpen(true)}
         onOpenPostcardModal={() => setIsPostcardOpen(true)}
         onOpenTripModal={trip.openTripModal}
@@ -476,7 +473,6 @@ export const App: React.FC = () => {
         onToggleAmbientMixer={ambient.toggleMixer}
         onToggleAudioFx={eq.toggleEq}
         onOpenCarMode={() => setIsCarModeOpen(true)}
-        onOpenRadioModal={() => setIsRadioOpen(true)}
         onOpenFocusModal={() => setIsFocusOpen(true)}
         onOpenPostcardModal={() => setIsPostcardOpen(true)}
         onOpenTripModal={trip.openTripModal}
@@ -576,14 +572,7 @@ export const App: React.FC = () => {
         onClose={() => setIsFocusOpen(false)}
       />
 
-      {/* 8. 24/7 Live Radio (station add disabled — only R2 songs allowed) */}
-      <RadioStationModal
-        isOpen={isRadioOpen}
-        onClose={() => setIsRadioOpen(false)}
-        currentTrack={currentTrack}
-        onSelectStation={() => {}}
-        onAddLocalFiles={() => {}}
-      />
+
 
       {/* Backlink — bottom-left, minimal */}
       <a
