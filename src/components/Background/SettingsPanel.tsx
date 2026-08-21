@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Settings, AudioLines, AlignCenter, PanelBottom,
   Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, SunMedium,
-  Timer, Camera, Users, Droplets, Zap, Image as ImageIcon, Check,
+  Timer, Camera, Users, Droplets, Zap, Sparkles, Stars, Waves, Film, Image as ImageIcon, Check,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 import { SleepTimerOption } from '../../hooks/useAudioPlayer';
@@ -21,8 +21,16 @@ interface SettingsPanelProps {
   // Visual layers
   showRainGlass: boolean;
   showSpeedParticles: boolean;
+  showFireflies: boolean;
+  showShootingStars: boolean;
+  showAurora: boolean;
+  showFilmGrain: boolean;
   onToggleRainGlass: () => void;
   onToggleSpeedParticles: () => void;
+  onToggleFireflies: () => void;
+  onToggleShootingStars: () => void;
+  onToggleAurora: () => void;
+  onToggleFilmGrain: () => void;
   // Background wallpapers
   currentBgPreset: BackgroundPreset;
   onSelectBgPreset: (preset: BackgroundPreset) => void;
