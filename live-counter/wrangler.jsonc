@@ -6,9 +6,15 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"LiveCounter"
+				"MyDurableObject"
 			],
 			"tag": "v1"
+		},
+		{
+			"new_sqlite_classes": [
+				"LiveCounter"
+			],
+			"tag": "v2"
 		}
 	],
 	"durable_objects": {

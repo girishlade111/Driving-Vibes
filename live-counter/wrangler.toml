@@ -9,6 +9,10 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
+new_sqlite_classes = ["MyDurableObject"]
+
+[[migrations]]
+tag = "v2"
 new_sqlite_classes = ["LiveCounter"]
 
 [observability]
