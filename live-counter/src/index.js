@@ -1,68 +1,250 @@
 import { DurableObject } from "cloudflare:workers";
 
 /**
- * Welcome to Cloudflare Workers! This is your first Durable Objects application.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your Durable Object in action
- * - Run `npm run deploy` to publish your application
- *
- * Learn more at https://developers.cloudflare.com/durable-objects
+ * LiveCounter Durable Object
+ * 
+ * Manages active WebSocket connections in memory, tracks heartbeats,
+ * applies per-IP concurrent connection limits, and broadcasts the real-time
+ * active user count to all connected clients.
  */
+export class LiveCounter extends DurableObject {
+  /**
+   * @param {DurableObjectState} ctx - Durable Object execution context and storage
+   * @param {Record<string, any>} env - Environment bindings
+   */
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.ctx = ctx;
+    this.env = env;
 
-/**
- * Env provides a mechanism to reference bindings declared in wrangler.jsonc within JavaScript
- *
- * @typedef {Object} Env
- * @property {DurableObjectNamespace} MY_DURABLE_OBJECT - The Durable Object namespace binding
- */
+    /** @type {Map<WebSocket, { ip: string, lastSeen: number }>} */
+    this.sessions = new Map();
 
-/** A Durable Object's behavior is defined in an exported Javascript class */
-export class MyDurableObject extends DurableObject {
-	/**
-	 * The constructor is invoked once upon creation of the Durable Object, i.e. the first call to
-	 * 	`DurableObjectStub::get` for a given identifier (no-op constructors can be omitted)
-	 *
-	 * @param {DurableObjectState} ctx - The interface for interacting with Durable Object state
-	 * @param {Env} env - The interface to reference bindings declared in wrangler.jsonc
-	 */
-	constructor(ctx, env) {
-		super(ctx, env);
-	}
+    /** @type {Map<string, number>} Track concurrent connections per IP */
+    this.ipCounts = new Map();
 
-	/**
-	 * The Durable Object exposes an RPC method sayHello which will be invoked when a Durable
-	 *  Object instance receives a request from a Worker via the same method invocation on the stub
-	 *
-	 * @param {string} name - The name provided to a Durable Object instance from a Worker
-	 * @returns {Promise<string>} The greeting to be sent back to the Worker
-	 */
-	async sayHello(name) {
-		return `Hello, ${name}!`;
-	}
+    // Configuration constants
+    this.MAX_CONCURRENT_PER_IP = 5;
+    this.HEARTBEAT_TIMEOUT_MS = 60 * 1000; // 60 seconds without ping = disconnected
+    this.ALARM_INTERVAL_MS = 25 * 1000;    // Run cleanup sweep alarm every 25 seconds
+  }
+
+  /**
+   * Handles incoming HTTP / WebSocket upgrade requests
+   * @param {Request} request
+   * @returns {Promise<Response>}
+   */
+  async fetch(request) {
+    // Provide a simple HTTP status/health response if not a WebSocket upgrade request
+    const upgradeHeader = request.headers.get("Upgrade");
+    if (!upgradeHeader || upgradeHeader.toLowerCase() !== "websocket") {
+      return new Response(
+        JSON.stringify({
+          status: "online",
+          activeUsers: this.sessions.size,
+          message: "LiveCounter WebSocket endpoint. Connect with WebSocket client."
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    // Extract client IP address for rate-limiting & abuse prevention
+    const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+
+    // 5. Rate limiting: reject if single IP opens more than 5 concurrent connections
+    const currentIpCount = this.ipCounts.get(clientIp) || 0;
+    if (clientIp !== "unknown" && currentIpCount >= this.MAX_CONCURRENT_PER_IP) {
+      return new Response("Too many concurrent WebSocket connections from this IP", {
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: {
+          "Retry-After": "30",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    // 1. Establish WebSocket pair
+    const webSocketPair = new WebSocketPair();
+    const [client, server] = Object.values(webSocketPair);
+
+    // Accept and register server-side WebSocket session
+    this.handleSession(server, clientIp);
+
+    // Return status 101 Switching Protocols with client WebSocket
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    });
+  }
+
+  /**
+   * Registers and attaches event handlers for a new WebSocket session
+   * @param {WebSocket} ws
+   * @param {string} ip
+   */
+  handleSession(ws, ip) {
+    ws.accept();
+
+    const now = Date.now();
+    this.sessions.set(ws, { ip, lastSeen: now });
+
+    // Update IP count
+    const count = this.ipCounts.get(ip) || 0;
+    this.ipCounts.set(ip, count + 1);
+
+    // Ensure periodic cleanup alarm is scheduled
+    this.ensureAlarmScheduled();
+
+    // Broadcast updated active user count to all sessions (including new joiner)
+    this.broadcastCount();
+
+    // Listen for client heartbeat ping messages
+    ws.addEventListener("message", (event) => {
+      const msg = typeof event.data === "string" ? event.data.trim() : "";
+      if (msg === "ping" || msg === '{"type":"ping"}') {
+        const session = this.sessions.get(ws);
+        if (session) {
+          session.lastSeen = Date.now();
+        }
+        try {
+          ws.send(JSON.stringify({ type: "pong", activeUsers: this.sessions.size }));
+        } catch (e) {
+          // Socket closing
+        }
+      }
+    });
+
+    // Handle session disconnect and error events
+    ws.addEventListener("close", () => {
+      this.removeSession(ws);
+    });
+
+    ws.addEventListener("error", () => {
+      this.removeSession(ws);
+    });
+  }
+
+  /**
+   * Safely removes a session, decrements IP counter, and broadcasts updated count
+   * @param {WebSocket} ws
+   */
+  removeSession(ws) {
+    const session = this.sessions.get(ws);
+    if (!session) return;
+
+    const { ip } = session;
+    this.sessions.delete(ws);
+
+    // Decrement IP count
+    const count = this.ipCounts.get(ip);
+    if (count !== undefined) {
+      if (count <= 1) {
+        this.ipCounts.delete(ip);
+      } else {
+        this.ipCounts.set(ip, count - 1);
+      }
+    }
+
+    try {
+      ws.close(1000, "Closed");
+    } catch (e) {
+      // Sockets may already be closed
+    }
+
+    // Broadcast new count to remaining clients
+    this.broadcastCount();
+  }
+
+  /**
+   * Broadcasts the current active user count as JSON: { activeUsers: number }
+   */
+  broadcastCount() {
+    const payload = JSON.stringify({ activeUsers: this.sessions.size });
+    const deadSockets = [];
+
+    for (const [ws] of this.sessions.entries()) {
+      try {
+        ws.send(payload);
+      } catch (err) {
+        // Socket is no longer writable
+        deadSockets.push(ws);
+      }
+    }
+
+    // Clean up any sockets that failed during broadcast
+    for (const ws of deadSockets) {
+      this.removeSession(ws);
+    }
+  }
+
+  /**
+   * Ensures an alarm is scheduled for periodic heartbeat sweep
+   */
+  async ensureAlarmScheduled() {
+    try {
+      const currentAlarm = await this.ctx.storage.getAlarm();
+      if (currentAlarm === null) {
+        await this.ctx.storage.setAlarm(Date.now() + this.ALARM_INTERVAL_MS);
+      }
+    } catch (err) {
+      console.error("Failed to schedule alarm:", err);
+    }
+  }
+
+  /**
+   * Periodic alarm triggered by Cloudflare runtime:
+   * Scans sessions for stale heartbeats (> 60s without ping) and purges them.
+   */
+  async alarm() {
+    const now = Date.now();
+    const deadSockets = [];
+
+    for (const [ws, session] of this.sessions.entries()) {
+      if (now - session.lastSeen > this.HEARTBEAT_TIMEOUT_MS) {
+        deadSockets.push(ws);
+      }
+    }
+
+    for (const ws of deadSockets) {
+      try {
+        ws.close(1000, "Heartbeat timeout");
+      } catch (e) {
+        // Ignore
+      }
+      this.removeSession(ws);
+    }
+
+    // Reschedule next alarm if sessions are still active
+    if (this.sessions.size > 0) {
+      await this.ctx.storage.setAlarm(Date.now() + this.ALARM_INTERVAL_MS);
+    }
+  }
 }
 
+/**
+ * Worker Entry Point (index.js)
+ * Routes all incoming requests to a single named Durable Object instance (singleton pattern)
+ */
 export default {
-	/**
-	 * This is the standard fetch handler for a Cloudflare Worker
-	 *
-	 * @param {Request} request - The request submitted to the Worker from the client
-	 * @param {Env} env - The interface to reference bindings declared in wrangler.jsonc
-	 * @param {ExecutionContext} ctx - The execution context of the Worker
-	 * @returns {Promise<Response>} The response to be sent back to the client
-	 */
-	async fetch(request, env, ctx) {
-		// Create a stub to open a communication channel with the Durable Object
-		// instance named "foo".
-		//
-		// Requests from all Workers to the Durable Object instance named "foo"
-		// will go to a single remote Durable Object instance.
-		const stub = env.MY_DURABLE_OBJECT.getByName("foo");
+  /**
+   * @param {Request} request
+   * @param {{ LIVE_COUNTER: DurableObjectNamespace }} env
+   * @param {ExecutionContext} ctx
+   * @returns {Promise<Response>}
+   */
+  async fetch(request, env, ctx) {
+    // Singleton pattern: all requests route to the "global" named Durable Object instance
+    const id = env.LIVE_COUNTER.idFromName("global");
+    const liveCounterStub = env.LIVE_COUNTER.get(id);
 
-		// Call the `sayHello()` RPC method on the stub to invoke the method on
-		// the remote Durable Object instance.
-		const greeting = await stub.sayHello("world");
-
-		return new Response(greeting);
-	},
+    // Forward the request (including WebSocket upgrade handshake) to the Durable Object
+    return liveCounterStub.fetch(request);
+  },
 };
