@@ -14,6 +14,10 @@ import { PostcardModal } from './components/Postcard/PostcardModal';
 import { FocusTimerModal } from './components/Focus/FocusTimerModal';
 import { RainGlassCanvas } from './components/InteractiveCanvas/RainGlassCanvas';
 import { SpeedParticlesCanvas } from './components/InteractiveCanvas/SpeedParticlesCanvas';
+import { FirefliesCanvas } from './components/InteractiveCanvas/FirefliesCanvas';
+import { ShootingStarsCanvas } from './components/InteractiveCanvas/ShootingStarsCanvas';
+import { AuroraCanvas } from './components/InteractiveCanvas/AuroraCanvas';
+import { FilmGrainCanvas } from './components/InteractiveCanvas/FilmGrainCanvas';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useListeningStats } from './hooks/useListeningStats';
 import { useAmbientMixer } from './hooks/useAmbientMixer';
@@ -35,13 +39,17 @@ const ACCENT_MAP: Record<string, { h: number; s: string; l: string }> = {
   Violet: { h: 262, s: '80%',  l: '68%'  },
 };
 
-const STORAGE_ACCENT_KEY      = 'driving_vibes_accent';
-const STORAGE_NOW_PLAYING_KEY = 'driving_vibes_show_now_playing';
-const STORAGE_BG_PRESET_KEY   = 'driving_vibes_bg_preset';
-const STORAGE_TOD_KEY         = 'driving_vibes_tod_mode';
-const STORAGE_CUSTOM_BG_KEY   = 'driving_vibes_custom_bg';
-const STORAGE_RAIN_KEY        = 'driving_vibes_rain_glass';
-const STORAGE_SPEED_KEY       = 'driving_vibes_speed_particles';
+const STORAGE_ACCENT_KEY         = 'driving_vibes_accent';
+const STORAGE_NOW_PLAYING_KEY    = 'driving_vibes_show_now_playing';
+const STORAGE_BG_PRESET_KEY      = 'driving_vibes_bg_preset';
+const STORAGE_TOD_KEY            = 'driving_vibes_tod_mode';
+const STORAGE_CUSTOM_BG_KEY      = 'driving_vibes_custom_bg';
+const STORAGE_RAIN_KEY           = 'driving_vibes_rain_glass';
+const STORAGE_SPEED_KEY          = 'driving_vibes_speed_particles';
+const STORAGE_FIREFLIES_KEY      = 'driving_vibes_fireflies';
+const STORAGE_SHOOTING_STARS_KEY = 'driving_vibes_shooting_stars';
+const STORAGE_AURORA_KEY         = 'driving_vibes_aurora';
+const STORAGE_GRAIN_KEY          = 'driving_vibes_film_grain';
 
 function loadAccent(): string {
   try {
