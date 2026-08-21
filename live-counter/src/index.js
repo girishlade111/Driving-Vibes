@@ -228,6 +228,9 @@ export class LiveCounter extends DurableObject {
   }
 }
 
+/** Export alias for backwards compatibility with any existing DO instances */
+export class MyDurableObject extends LiveCounter {}
+
 /**
  * Worker Entry Point (index.js)
  * Routes all incoming requests to a single named Durable Object instance (singleton pattern)
