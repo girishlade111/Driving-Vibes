@@ -250,66 +250,72 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {/* ── Quick Feature Shortcuts ── */}
             <div>
               <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40 mb-2">
-                All App Features
+                Features & Modes
               </p>
               <div className="grid grid-cols-3 gap-1.5">
                 {onOpenAmbientMixer && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenAmbientMixer(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-sky-500/20 border border-white/8 hover:border-sky-400/30 text-white/70 hover:text-sky-300 transition-all text-center"
+                    title="Ambient Sound Mixer [A]"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-sky-500/20 border border-white/8 hover:border-sky-400/30 text-white/70 hover:text-sky-300 transition-all text-center group"
                   >
-                    <CloudRain className="w-4 h-4 text-sky-400" />
-                    <span className="text-[10px] font-medium">Ambient</span>
+                    <CloudRain className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-medium leading-tight">Ambient</span>
                   </button>
                 )}
 
                 {onOpenAudioFx && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenAudioFx(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/8 hover:border-amber-400/30 text-white/70 hover:text-amber-300 transition-all text-center"
+                    title="Equalizer & Audio FX [E]"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/8 hover:border-amber-400/30 text-white/70 hover:text-amber-300 transition-all text-center group"
                   >
-                    <Sliders className="w-4 h-4 text-amber-400" />
-                    <span className="text-[10px] font-medium">Equalizer</span>
+                    <Sliders className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-medium leading-tight">Equalizer</span>
                   </button>
                 )}
 
                 {onOpenFocusModal && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenFocusModal(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/8 hover:border-emerald-400/30 text-white/70 hover:text-emerald-300 transition-all text-center"
+                    title="Focus Drive & 432Hz Tones [P]"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/8 hover:border-emerald-400/30 text-white/70 hover:text-emerald-300 transition-all text-center group"
                   >
-                    <Timer className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] font-medium">Focus (P)</span>
+                    <Timer className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-medium leading-tight">Focus</span>
                   </button>
                 )}
 
                 {onOpenPostcardModal && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenPostcardModal(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 border border-white/8 hover:border-cyan-400/30 text-white/70 hover:text-cyan-300 transition-all text-center"
+                    title="Aesthetic Wallpaper & Postcard Generator"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 border border-white/8 hover:border-cyan-400/30 text-white/70 hover:text-cyan-300 transition-all text-center group"
                   >
-                    <Camera className="w-4 h-4 text-cyan-400" />
-                    <span className="text-[10px] font-medium">Postcard</span>
+                    <Camera className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-medium leading-tight">Postcard</span>
                   </button>
                 )}
 
                 {onOpenTripModal && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenTripModal(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 border border-white/8 hover:border-indigo-400/30 text-white/70 hover:text-indigo-300 transition-all text-center"
+                    title="Virtual Road Trip / Listen Together Room"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 border border-white/8 hover:border-indigo-400/30 text-white/70 hover:text-indigo-300 transition-all text-center group"
                   >
-                    <Users className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[10px] font-medium">Virtual Trip</span>
+                    <Users className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-medium leading-tight">Virtual Trip</span>
                   </button>
                 )}
 
                 {onOpenCarMode && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenCarMode(); }}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/8 hover:border-emerald-400/30 text-white/70 hover:text-emerald-300 transition-all text-center col-span-2"
+                    title="Car Dashboard HUD [C]"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-amber-500/20 border border-white/8 hover:border-amber-400/30 text-white/70 hover:text-amber-300 transition-all text-center group"
                   >
-                    <Car className="w-4 h-4 text-amber-400" />
-                    <span className="text-[10px] font-medium">Car Mode HUD (C)</span>
+                    <Car className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-medium leading-tight">Car Mode</span>
                   </button>
                 )}
               </div>

@@ -422,7 +422,6 @@ export const App: React.FC = () => {
           playerPosition={playerPosition}
           volume={volume}
           isMuted={isMuted}
-          ambientActiveCount={ambient.activeCount}
           onTogglePlay={togglePlay}
           onPrevious={previous}
           onNext={next}
@@ -433,12 +432,6 @@ export const App: React.FC = () => {
           onSetVolume={setVolume}
           onToggleMute={toggleMute}
           onShare={handleShare}
-          onToggleAmbientMixer={ambient.toggleMixer}
-          onToggleAudioFx={eq.toggleEq}
-          onOpenCarMode={() => setIsCarModeOpen(true)}
-          onOpenFocusModal={() => setIsFocusOpen(true)}
-          onOpenPostcardModal={() => setIsPostcardOpen(true)}
-          onOpenTripModal={trip.openTripModal}
         />
       )}
 
