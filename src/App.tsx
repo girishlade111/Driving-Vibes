@@ -223,14 +223,6 @@ export const App: React.FC = () => {
   }, [stopTracking]);
 
   // ── Flagship Features ─────────────────────────────────────────────────
-  // Local file upload disabled — only R2 songs are allowed.
-  const handleLocalFiles = useCallback(() => {}, []);
-  
-  // Radio station selection disabled — only R2 songs are allowed.
-  const handleSelectRadioStation = useCallback(() => {}, []);
-
-  // Global drag-and-drop disabled — only R2 songs are allowed.
-
   const ambient = useAmbientMixer();
   const eq = useAudioEqualizer(audioRef);
   const dj = useAiDjHost();
