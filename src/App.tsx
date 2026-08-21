@@ -362,8 +362,12 @@ export const App: React.FC = () => {
       />
 
       {/* z-10 — Interactive Screen Canvases */}
-      <RainGlassCanvas isEnabled={showRainGlass} />
+      <AuroraCanvas isEnabled={showAurora} isPlaying={isPlaying} />
+      <ShootingStarsCanvas isEnabled={showShootingStars} isPlaying={isPlaying} />
       <SpeedParticlesCanvas isEnabled={showSpeedParticles} isPlaying={isPlaying} accentColor={accentColor} />
+      <FirefliesCanvas isEnabled={showFireflies} isPlaying={isPlaying} accentColor={accentColor} />
+      <RainGlassCanvas isEnabled={showRainGlass} />
+      <FilmGrainCanvas isEnabled={showFilmGrain} />
 
       {/* z-35 — Settings button + panel */}
       <SettingsPanel
@@ -377,8 +381,16 @@ export const App: React.FC = () => {
         onToggleNowPlaying={toggleNowPlaying}
         showRainGlass={showRainGlass}
         showSpeedParticles={showSpeedParticles}
+        showFireflies={showFireflies}
+        showShootingStars={showShootingStars}
+        showAurora={showAurora}
+        showFilmGrain={showFilmGrain}
         onToggleRainGlass={toggleRainGlass}
         onToggleSpeedParticles={toggleSpeedParticles}
+        onToggleFireflies={toggleFireflies}
+        onToggleShootingStars={toggleShootingStars}
+        onToggleAurora={toggleAurora}
+        onToggleFilmGrain={toggleFilmGrain}
         currentBgPreset={bgPreset}
         onSelectBgPreset={handleSelectBgPreset}
         timeOfDayMode={timeOfDayMode}
