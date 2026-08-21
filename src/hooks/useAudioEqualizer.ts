@@ -200,6 +200,25 @@ export function useAudioEqualizer(audioElementRef: React.RefObject<HTMLAudioElem
     }
   }, [eqState.bass, eqState.mid, eqState.treble, initAudioGraph]);
 
+  // Resume AudioContext whenever audio starts playing or user interacts
+  useEffect(() => {
+    const audio = audioElementRef.current;
+    if (!audio) return;
+
+    const handleResume = () => {
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+    };
+
+    audio.addEventListener('play', handleResume);
+    audio.addEventListener('playing', handleResume);
+    return () => {
+      audio.removeEventListener('play', handleResume);
+      audio.removeEventListener('playing', handleResume);
+    };
+  }, [audioElementRef]);
+
   // Sync Playback Speed with Audio Element
   useEffect(() => {
     const audio = audioElementRef.current;
