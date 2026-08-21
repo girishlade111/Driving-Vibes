@@ -19,7 +19,11 @@ export function useLiveCounter(customWsUrl?: string): UseLiveCounterResult {
   const [activeUsers, setActiveUsers] = useState<number | null>(null);
   const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
 
-  const wsUrl = customWsUrl || (typeof window !== 'undefined' && (window as any).LIVE_COUNTER_WS_URL) || DEFAULT_WS_URL;
+  const wsUrl =
+    customWsUrl ||
+    (typeof window !== 'undefined' && (window as any).LIVE_COUNTER_WS_URL) ||
+    (import.meta.env.VITE_LIVE_COUNTER_WS_URL as string) ||
+    DEFAULT_WS_URL;
   
   const wsRef = useRef<WebSocket | null>(null);
   const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
