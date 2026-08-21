@@ -339,12 +339,8 @@ export const App: React.FC = () => {
         showSpeedParticles={showSpeedParticles}
         onToggleRainGlass={toggleRainGlass}
         onToggleSpeedParticles={toggleSpeedParticles}
-        currentBgPreset={bgPreset}
         timeOfDayMode={timeOfDayMode}
-        customBgUrl={customBgUrl}
-        onSelectBgPreset={handleSelectBgPreset}
         onSelectTimeOfDay={handleSelectTimeOfDay}
-        onSetCustomBgUrl={handleSetCustomBgUrl}
         sleepTimer={sleepTimer}
         sleepRemaining={sleepRemaining}
         onSetSleepTimer={handleSetSleepTimer}

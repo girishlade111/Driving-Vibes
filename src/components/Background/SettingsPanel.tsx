@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Settings, AudioLines, AlignCenter, PanelBottom,
-  Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, Film, SunMedium,
+  Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, SunMedium,
   Timer, Camera, Users, Droplets, Zap,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 import { SleepTimerOption } from '../../hooks/useAudioPlayer';
 import { ListeningStats } from '../../hooks/useListeningStats';
-import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from '../../types/backgroundPresets';
+import { TimeOfDayMode } from '../../types/backgroundPresets';
 
 interface SettingsPanelProps {
   blur: number;
@@ -23,13 +23,9 @@ interface SettingsPanelProps {
   showSpeedParticles: boolean;
   onToggleRainGlass: () => void;
   onToggleSpeedParticles: () => void;
-  // Background presets
-  currentBgPreset: BackgroundPreset;
+  // Time of day
   timeOfDayMode: TimeOfDayMode;
-  customBgUrl: string;
-  onSelectBgPreset: (preset: BackgroundPreset) => void;
   onSelectTimeOfDay: (mode: TimeOfDayMode) => void;
-  onSetCustomBgUrl: (url: string) => void;
   // Sleep timer
   sleepTimer: SleepTimerOption;
   sleepRemaining: number;
@@ -160,12 +156,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   showSpeedParticles,
   onToggleRainGlass,
   onToggleSpeedParticles,
-  currentBgPreset,
   timeOfDayMode,
-  customBgUrl,
-  onSelectBgPreset,
   onSelectTimeOfDay,
-  onSetCustomBgUrl,
   sleepTimer,
   sleepRemaining,
   onSetSleepTimer,
@@ -183,7 +175,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onOpenTripModal,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [customInputUrl, setCustomInputUrl] = useState(customBgUrl);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -345,66 +336,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   ariaLabel="Toggle 3D speed particles"
                   onClick={onToggleSpeedParticles}
                 />
-              </div>
-            </div>
-
-            <div className="h-px bg-white/8" />
-
-            {/* ── Background Presets (Video & Images) ── */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <Film className="w-3.5 h-3.5 text-white/40" />
-                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40">
-                  Cinematic Backgrounds
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                {BACKGROUND_PRESETS.map((preset) => {
-                  const active = currentBgPreset.id === preset.id && !customBgUrl;
-                  return (
-                    <button
-                      key={preset.id}
-                      onClick={() => {
-                        onSetCustomBgUrl('');
-                        onSelectBgPreset(preset);
-                      }}
-                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl border text-left transition-all ${
-                        active
-                          ? 'bg-white/15 border-white/30 text-white font-medium shadow-sm'
-                          : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-base">{preset.thumbnail}</span>
-                        <span className="text-xs truncate">{preset.name}</span>
-                      </div>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 shrink-0">
-                        {preset.tag}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Custom URL Input */}
-              <div className="mt-2.5 pt-2 border-t border-white/5">
-                <div className="text-[10px] text-white/40 mb-1">Custom Video / Image URL:</div>
-                <div className="flex gap-1">
-                  <input
-                    type="url"
-                    placeholder="https://...mp4 or image"
-                    value={customInputUrl}
-                    onChange={(e) => setCustomInputUrl(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white placeholder-white/25 focus:border-white/30"
-                  />
-                  <button
-                    onClick={() => onSetCustomBgUrl(customInputUrl)}
-                    className="px-2 py-1 bg-white/15 hover:bg-white/25 rounded-lg text-[10px] font-medium"
-                  >
-                    Set
-                  </button>
-                </div>
               </div>
             </div>
 
