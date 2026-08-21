@@ -116,8 +116,12 @@ export const App: React.FC = () => {
   const [customBgUrl, setCustomBgUrl]       = useState<string>(() => loadCustomBg());
 
   // ── Interactive Screen Effects ────────────────────────────────────────
-  const [showRainGlass, setShowRainGlass]   = useState<boolean>(() => localStorage.getItem(STORAGE_RAIN_KEY) === 'true');
+  const [showRainGlass, setShowRainGlass]           = useState<boolean>(() => localStorage.getItem(STORAGE_RAIN_KEY) === 'true');
   const [showSpeedParticles, setShowSpeedParticles] = useState<boolean>(() => localStorage.getItem(STORAGE_SPEED_KEY) === 'true');
+  const [showFireflies, setShowFireflies]           = useState<boolean>(() => localStorage.getItem(STORAGE_FIREFLIES_KEY) === 'true');
+  const [showShootingStars, setShowShootingStars]   = useState<boolean>(() => localStorage.getItem(STORAGE_SHOOTING_STARS_KEY) === 'true');
+  const [showAurora, setShowAurora]                 = useState<boolean>(() => localStorage.getItem(STORAGE_AURORA_KEY) === 'true');
+  const [showFilmGrain, setShowFilmGrain]           = useState<boolean>(() => localStorage.getItem(STORAGE_GRAIN_KEY) === 'true');
 
   // ── Modals State ──────────────────────────────────────────────────────
   const [isCarModeOpen, setIsCarModeOpen]   = useState<boolean>(false);
@@ -162,6 +166,38 @@ export const App: React.FC = () => {
     setShowSpeedParticles((p) => {
       const next = !p;
       try { localStorage.setItem(STORAGE_SPEED_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const toggleFireflies = useCallback(() => {
+    setShowFireflies((p) => {
+      const next = !p;
+      try { localStorage.setItem(STORAGE_FIREFLIES_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const toggleShootingStars = useCallback(() => {
+    setShowShootingStars((p) => {
+      const next = !p;
+      try { localStorage.setItem(STORAGE_SHOOTING_STARS_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const toggleAurora = useCallback(() => {
+    setShowAurora((p) => {
+      const next = !p;
+      try { localStorage.setItem(STORAGE_AURORA_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const toggleFilmGrain = useCallback(() => {
+    setShowFilmGrain((p) => {
+      const next = !p;
+      try { localStorage.setItem(STORAGE_GRAIN_KEY, String(next)); } catch { /* ignore */ }
       return next;
     });
   }, []);
