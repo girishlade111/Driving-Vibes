@@ -8,6 +8,7 @@ export interface BackgroundPreset {
   type: BackgroundType;
   thumbnail: string;
   tag: string;
+  description?: string;
   videoSrc?: {
     desktop: string;
     mobile?: string;
@@ -26,8 +27,9 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     id: 'classic_cinematic',
     name: 'Classic Driving Art',
     type: 'image',
-    tag: 'Original Art',
+    tag: 'Default Art',
     thumbnail: '🚗',
+    description: 'Iconic aesthetic lo-fi driving illustration',
     imageSrc: {
       desktop: '/backgrounds/desktop-background.png',
       mobile: '/backgrounds/mobile-background.png',
@@ -36,51 +38,81 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     },
   },
   {
-    id: 'tokyo_night',
+    id: 'tokyo_neon',
     name: 'Tokyo Neon Highway',
-    type: 'video',
-    tag: '4K Video Loop',
+    type: 'image',
+    tag: 'Neon City',
     thumbnail: '🌃',
-    videoSrc: {
-      desktop: 'https://assets.mixkit.co/videos/preview/mixkit-night-traffic-in-a-japanese-city-43403-large.mp4',
-      mobile: 'https://assets.mixkit.co/videos/preview/mixkit-night-traffic-in-a-japanese-city-43403-large.mp4',
+    description: 'Rainy asphalt reflections & illuminated skyscrapers',
+    imageSrc: {
+      desktop: '/backgrounds/tokyo-neon-desktop.jpg',
+      mobile: '/backgrounds/tokyo-neon-mobile.jpg',
     },
-    overlayTint: 'rgba(5, 5, 15, 0.35)',
+    overlayTint: 'rgba(5, 5, 20, 0.2)',
+  },
+  {
+    id: 'sunset_coast',
+    name: 'Pacific Coastal Sunset',
+    type: 'image',
+    tag: 'Golden Coast',
+    thumbnail: '🌅',
+    description: 'Golden hour sunset over scenic ocean cliffs',
+    imageSrc: {
+      desktop: '/backgrounds/sunset-coast-desktop.jpg',
+      mobile: '/backgrounds/sunset-coast-mobile.jpg',
+    },
+    overlayTint: 'rgba(25, 10, 5, 0.15)',
   },
   {
     id: 'rainy_windshield',
-    name: 'Rainy Highway Drive',
-    type: 'video',
-    tag: '4K Video Loop',
+    name: 'Rainy Windshield Bokeh',
+    type: 'image',
+    tag: 'Moody Rain',
     thumbnail: '🌧️',
-    videoSrc: {
-      desktop: 'https://assets.mixkit.co/videos/preview/mixkit-rain-drops-falling-on-a-glass-window-41851-large.mp4',
-      mobile: 'https://assets.mixkit.co/videos/preview/mixkit-rain-drops-falling-on-a-glass-window-41851-large.mp4',
+    description: 'Night traffic blurred through windshield rain',
+    imageSrc: {
+      desktop: '/backgrounds/rainy-drive-desktop.jpg',
+      mobile: '/backgrounds/rainy-drive-mobile.jpg',
     },
-    overlayTint: 'rgba(5, 10, 20, 0.4)',
+    overlayTint: 'rgba(5, 10, 20, 0.2)',
   },
   {
-    id: 'sunset_coastline',
-    name: 'Sunset Coastal Road',
-    type: 'video',
-    tag: 'HD Video Loop',
-    thumbnail: '🌅',
-    videoSrc: {
-      desktop: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-waves-crashing-on-a-rocky-shore-at-41584-large.mp4',
-      mobile: 'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-waves-crashing-on-a-rocky-shore-at-41584-large.mp4',
+    id: 'mountain_pass',
+    name: 'Midnight Mountain Pass',
+    type: 'image',
+    tag: 'Alpine Mist',
+    thumbnail: '⛰️',
+    description: 'Foggy pine forest serpentines under moonlight',
+    imageSrc: {
+      desktop: '/backgrounds/mountain-pass-desktop.jpg',
+      mobile: '/backgrounds/mountain-pass-mobile.jpg',
     },
-    overlayTint: 'rgba(25, 10, 5, 0.3)',
+    overlayTint: 'rgba(8, 12, 22, 0.2)',
   },
   {
-    id: 'cyberpunk_speed',
-    name: 'Synthwave Night Grid',
-    type: 'video',
-    tag: 'Motion Loop',
+    id: 'synthwave_outrun',
+    name: 'Synthwave Sunset Grid',
+    type: 'image',
+    tag: "Synthwave '84",
     thumbnail: '🌌',
-    videoSrc: {
-      desktop: 'https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-futuristic-neon-lights-42999-large.mp4',
-      mobile: 'https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-futuristic-neon-lights-42999-large.mp4',
+    description: 'Neon wireframe horizon & retro dusk highway',
+    imageSrc: {
+      desktop: '/backgrounds/synthwave-outrun-desktop.jpg',
+      mobile: '/backgrounds/synthwave-outrun-mobile.jpg',
     },
-    overlayTint: 'rgba(15, 0, 25, 0.35)',
+    overlayTint: 'rgba(18, 5, 28, 0.2)',
+  },
+  {
+    id: 'desert_stars',
+    name: '4AM Desert Starlight',
+    type: 'image',
+    tag: 'Milky Way',
+    thumbnail: '✨',
+    description: 'Open desert highway beneath cosmic starlight',
+    imageSrc: {
+      desktop: '/backgrounds/desert-stars-desktop.jpg',
+      mobile: '/backgrounds/desert-stars-mobile.jpg',
+    },
+    overlayTint: 'rgba(2, 6, 20, 0.2)',
   },
 ];

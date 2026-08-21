@@ -312,10 +312,6 @@ export const App: React.FC = () => {
       <Background
         currentPreset={bgPreset}
         customMediaUrl={customBgUrl}
-        desktopSrc="/backgrounds/desktop-background.png"
-        mobileSrc="/backgrounds/mobile-background.png"
-        desktopGif="/backgrounds/desktop-background.gif"
-        mobileGif="/backgrounds/mobile-background.gif"
         isAnimated={isAnimated}
         blur={blur}
         timeOfDayMode={timeOfDayMode}
@@ -339,6 +335,8 @@ export const App: React.FC = () => {
         showSpeedParticles={showSpeedParticles}
         onToggleRainGlass={toggleRainGlass}
         onToggleSpeedParticles={toggleSpeedParticles}
+        currentBgPreset={bgPreset}
+        onSelectBgPreset={handleSelectBgPreset}
         timeOfDayMode={timeOfDayMode}
         onSelectTimeOfDay={handleSelectTimeOfDay}
         sleepTimer={sleepTimer}

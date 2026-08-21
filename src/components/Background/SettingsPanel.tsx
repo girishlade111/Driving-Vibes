@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Settings, AudioLines, AlignCenter, PanelBottom,
   Moon, BarChart2, Trash2, Palette, CloudRain, Sliders, Car, SunMedium,
-  Timer, Camera, Users, Droplets, Zap,
+  Timer, Camera, Users, Droplets, Zap, Image as ImageIcon, Check,
 } from 'lucide-react';
 import { PlayerPosition } from '../../App';
 import { SleepTimerOption } from '../../hooks/useAudioPlayer';
 import { ListeningStats } from '../../hooks/useListeningStats';
-import { TimeOfDayMode } from '../../types/backgroundPresets';
+import { BACKGROUND_PRESETS, BackgroundPreset, TimeOfDayMode } from '../../types/backgroundPresets';
 
 interface SettingsPanelProps {
   blur: number;
@@ -23,6 +23,9 @@ interface SettingsPanelProps {
   showSpeedParticles: boolean;
   onToggleRainGlass: () => void;
   onToggleSpeedParticles: () => void;
+  // Background wallpapers
+  currentBgPreset: BackgroundPreset;
+  onSelectBgPreset: (preset: BackgroundPreset) => void;
   // Time of day
   timeOfDayMode: TimeOfDayMode;
   onSelectTimeOfDay: (mode: TimeOfDayMode) => void;
@@ -156,6 +159,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   showSpeedParticles,
   onToggleRainGlass,
   onToggleSpeedParticles,
+  currentBgPreset,
+  onSelectBgPreset,
   timeOfDayMode,
   onSelectTimeOfDay,
   sleepTimer,
@@ -278,10 +283,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </button>
                 )}
 
-
-
-
-
                 {onOpenPostcardModal && (
                   <button
                     onClick={() => { setIsOpen(false); onOpenPostcardModal(); }}
@@ -311,6 +312,86 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <span className="text-[10px] font-medium">Car Mode HUD (C)</span>
                   </button>
                 )}
+              </div>
+            </div>
+
+            <div className="h-px bg-white/8" />
+
+            {/* ── Background Wallpapers (Dual Screen: 16:9 Desktop & 9:16 Mobile) ── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-white/50" />
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-white/40">
+                    Background Theme
+                  </p>
+                </div>
+                <span className="text-[9px] font-mono text-white/30 tracking-wider">
+                  Desktop & Mobile
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {BACKGROUND_PRESETS.map((preset) => {
+                  const active = currentBgPreset.id === preset.id;
+                  const thumbSrc = preset.imageSrc?.desktop || preset.imageSrc?.mobile;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => onSelectBgPreset(preset)}
+                      className={`w-full flex items-center justify-between p-2 rounded-xl border text-left transition-all duration-200 group ${
+                        active
+                          ? 'bg-white/18 border-white/35 text-white shadow-md shadow-black/20 ring-1 ring-white/25'
+                          : 'bg-white/5 border-white/6 text-white/65 hover:bg-white/10 hover:text-white hover:border-white/15'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        {/* Mini visual thumbnail preview */}
+                        <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/15 bg-black/40 flex items-center justify-center">
+                          {thumbSrc ? (
+                            <img
+                              src={thumbSrc}
+                              alt=""
+                              className="w-full h-full object-cover object-center transform group-hover:scale-110 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="text-sm">{preset.thumbnail}</span>
+                          )}
+                          {active && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium truncate text-white">
+                              {preset.name}
+                            </span>
+                          </div>
+                          {preset.description && (
+                            <p className="text-[10px] text-white/40 truncate">
+                              {preset.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-md font-medium tracking-wide transition-colors ${
+                            active
+                              ? 'bg-white/25 text-white'
+                              : 'bg-white/8 text-white/45 group-hover:bg-white/12 group-hover:text-white/70'
+                          }`}
+                        >
+                          {preset.tag}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

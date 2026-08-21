@@ -30,14 +30,20 @@ export const Background: React.FC<BackgroundProps> = ({
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Preload GIF if in classic image mode
+  const activeDesktopSrc = currentPreset?.imageSrc?.desktop || desktopSrc;
+  const activeMobileSrc = currentPreset?.imageSrc?.mobile || mobileSrc;
+  const activeDesktopGif = currentPreset?.imageSrc?.desktopGif || desktopGif;
+  const activeMobileGif = currentPreset?.imageSrc?.mobileGif || mobileGif;
+
+  // Preload GIF if in animated mode
   useEffect(() => {
+    if (!activeDesktopGif) return;
     const isMobile = window.matchMedia('(max-width: 767px)').matches;
-    const gifSrc = isMobile ? mobileGif : desktopGif;
+    const gifSrc = isMobile ? activeMobileGif : activeDesktopGif;
     const img = new Image();
     img.onload = () => setGifLoaded(true);
     img.src = gifSrc;
-  }, [desktopGif, mobileGif]);
+  }, [activeDesktopGif, activeMobileGif]);
 
   // Restart video if preset changes
   useEffect(() => {
@@ -47,6 +53,11 @@ export const Background: React.FC<BackgroundProps> = ({
       videoRef.current.load();
       videoRef.current.play().catch(() => {/* ignore autoplay restrictions */});
     }
+  }, [currentPreset?.id, customMediaUrl]);
+
+  // Reset image load state on preset switch for smooth fade
+  useEffect(() => {
+    setStaticLoaded(false);
   }, [currentPreset?.id, customMediaUrl]);
 
   // Determine active time of day tint
@@ -104,15 +115,16 @@ export const Background: React.FC<BackgroundProps> = ({
         />
       ) : (
         <>
-          {/* ── Layer 1: Static Image (fades out when animated) ── */}
+          {/* ── Layer 1: Static Image (Dual Screen: Desktop 16:9 & Mobile 9:16) ── */}
           <picture
             className="absolute inset-0 w-full h-full block"
-            style={{ opacity: isAnimated ? 0 : 1, transition: 'opacity 600ms ease-in-out' }}
+            style={{ opacity: isAnimated && activeDesktopGif ? 0 : 1, transition: 'opacity 600ms ease-in-out' }}
           >
-            <source media="(max-width: 767px)" srcSet={mobileSrc} />
-            <source media="(min-width: 768px)" srcSet={desktopSrc} />
+            <source media="(max-width: 767px)" srcSet={activeMobileSrc} />
+            <source media="(min-width: 768px)" srcSet={activeDesktopSrc} />
             <img
-              src={customMediaUrl || desktopSrc}
+              key={`${currentPreset?.id || 'default'}-${customMediaUrl || activeDesktopSrc}`}
+              src={customMediaUrl || activeDesktopSrc}
               alt=""
               role="presentation"
               className={`w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-700 ease-out ${
@@ -125,24 +137,26 @@ export const Background: React.FC<BackgroundProps> = ({
             />
           </picture>
 
-          {/* ── Layer 2: Animated GIF (fades in when animated) ── */}
-          <picture
-            className="absolute inset-0 w-full h-full block"
-            style={{ opacity: isAnimated ? 1 : 0, transition: 'opacity 600ms ease-in-out' }}
-          >
-            <source media="(max-width: 767px)" srcSet={mobileGif} />
-            <source media="(min-width: 768px)" srcSet={desktopGif} />
-            <img
-              src={desktopGif}
-              alt=""
-              role="presentation"
-              className={`w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-500 ease-out ${
-                gifLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              decoding="async"
-              loading="lazy"
-            />
-          </picture>
+          {/* ── Layer 2: Animated GIF (fades in when animated mode active) ── */}
+          {activeDesktopGif && (
+            <picture
+              className="absolute inset-0 w-full h-full block"
+              style={{ opacity: isAnimated ? 1 : 0, transition: 'opacity 600ms ease-in-out' }}
+            >
+              <source media="(max-width: 767px)" srcSet={activeMobileGif} />
+              <source media="(min-width: 768px)" srcSet={activeDesktopGif} />
+              <img
+                src={activeDesktopGif}
+                alt=""
+                role="presentation"
+                className={`w-full h-full min-h-[100dvh] object-cover object-center transition-opacity duration-500 ease-out ${
+                  gifLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                decoding="async"
+                loading="lazy"
+              />
+            </picture>
+          )}
         </>
       )}
 
