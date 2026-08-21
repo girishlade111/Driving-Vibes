@@ -1,15 +1,14 @@
 /**
  * Live Counter Client-Side Integration Script (Vanilla JavaScript)
  * 
- * - Connects to Cloudflare Worker WebSocket endpoint
- * - Dynamically updates DOM element with id="live-count"
+ * - Auto-connects to deployed Cloudflare Worker WebSocket
+ * - Updates DOM element with id="live-count"
  * - Maintains connection with 25-second heartbeat ping
  * - Implements exponential backoff reconnects (3s -> 4.5s -> ... -> 30s max)
  * - Safe fallback to "—" when disconnected or error occurs
  */
 
 (function initLiveCounter() {
-  // Deployed Cloudflare Worker WebSocket URL
   const DEFAULT_WS_URL = "wss://live-counter.coderlade.workers.dev";
   const WS_URL = window.LIVE_COUNTER_WS_URL || DEFAULT_WS_URL;
   const ELEMENT_ID = "live-count";
