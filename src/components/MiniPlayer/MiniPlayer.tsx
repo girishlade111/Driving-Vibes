@@ -2,7 +2,6 @@ import React, { useRef, useState, useCallback } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, ListMusic, Loader2,
   Shuffle, Repeat, Repeat1, Volume2, Volume1, VolumeX, Share2, Check,
-  CloudRain, Sliders, Car, Timer, Camera, Users,
 } from 'lucide-react';
 import { Track } from '../../types/music';
 import { RepeatMode } from '../../hooks/useAudioPlayer';
@@ -21,7 +20,6 @@ interface MiniPlayerProps {
   playerPosition: PlayerPosition;
   volume: number;
   isMuted: boolean;
-  ambientActiveCount?: number;
   onTogglePlay: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -32,12 +30,6 @@ interface MiniPlayerProps {
   onSetVolume: (v: number) => void;
   onToggleMute: () => void;
   onShare: () => Promise<boolean>;
-  onToggleAmbientMixer?: () => void;
-  onToggleAudioFx?: () => void;
-  onOpenCarMode?: () => void;
-  onOpenFocusModal?: () => void;
-  onOpenPostcardModal?: () => void;
-  onOpenTripModal?: () => void;
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({
@@ -53,7 +45,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   playerPosition,
   volume,
   isMuted,
-  ambientActiveCount = 0,
   onTogglePlay,
   onPrevious,
   onNext,
@@ -64,12 +55,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onSetVolume,
   onToggleMute,
   onShare,
-  onToggleAmbientMixer,
-  onToggleAudioFx,
-  onOpenCarMode,
-  onOpenFocusModal,
-  onOpenPostcardModal,
-  onOpenTripModal,
 }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
@@ -138,9 +123,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   return (
     <nav
       aria-label="Audio player controls"
-      className={`${positionClass} z-30 w-[calc(100vw-20px)] sm:w-[620px] md:w-[680px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
+      className={`${positionClass} z-30 w-[calc(100vw-24px)] sm:w-[500px] md:w-[540px] select-none animate-fadeIn transition-all duration-500 ease-in-out`}
     >
-      <div className="glass-player relative flex items-center px-2 sm:px-3 py-2.5 rounded-full overflow-visible group shadow-2xl">
+      <div className="glass-player relative flex items-center px-2.5 sm:px-3.5 py-2.5 rounded-full overflow-visible group shadow-2xl">
 
         {/* ── Thin progress bar along bottom edge ── */}
         <div
@@ -243,87 +228,8 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
           </p>
         </div>
 
-        {/* ── Right Feature Buttons: Ambient Mixer + Audio FX + Focus + Postcard + Trip + Car Mode ── */}
+        {/* ── Right Controls: Volume + Repeat + Share + Playlist ── */}
         <div className="flex items-center gap-0.5 shrink-0">
-
-          {/* Ambient Mixer */}
-          {onToggleAmbientMixer && (
-            <button
-              onClick={onToggleAmbientMixer}
-              aria-label="Ambient Sound Mixer"
-              title="Ambient Sound Mixer [A]"
-              className={iconBtn(ambientActiveCount > 0)}
-            >
-              <span className="relative">
-                <CloudRain className="w-3.5 h-3.5 text-sky-300" />
-                {ambientActiveCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
-                )}
-              </span>
-            </button>
-          )}
-
-          {/* Audio Equalizer */}
-          {onToggleAudioFx && (
-            <button
-              onClick={onToggleAudioFx}
-              aria-label="Equalizer & Sound FX"
-              title="Equalizer & Audio FX [E]"
-              className={iconBtn(false)}
-            >
-              <Sliders className="w-3.5 h-3.5 text-amber-300" />
-            </button>
-          )}
-
-          {/* Focus & Zen Suite */}
-          {onOpenFocusModal && (
-            <button
-              onClick={onOpenFocusModal}
-              aria-label="Focus & Zen Suite"
-              title="Focus Drive & 432Hz Tones [P]"
-              className={iconBtn(false, 'hidden sm:flex')}
-            >
-              <Timer className="w-3.5 h-3.5 text-emerald-300" />
-            </button>
-          )}
-
-
-
-          {/* Postcard Generator */}
-          {onOpenPostcardModal && (
-            <button
-              onClick={onOpenPostcardModal}
-              aria-label="Generate Wallpaper Postcard"
-              title="Aesthetic Postcard & Wallpaper"
-              className={iconBtn(false, 'hidden md:flex')}
-            >
-              <Camera className="w-3.5 h-3.5 text-cyan-300" />
-            </button>
-          )}
-
-          {/* Virtual Road Trip */}
-          {onOpenTripModal && (
-            <button
-              onClick={onOpenTripModal}
-              aria-label="Virtual Road Trip"
-              title="Listen Together Room"
-              className={iconBtn(false, 'hidden md:flex')}
-            >
-              <Users className="w-3.5 h-3.5 text-indigo-300" />
-            </button>
-          )}
-
-          {/* Car Driving Mode */}
-          {onOpenCarMode && (
-            <button
-              onClick={onOpenCarMode}
-              aria-label="Car Driving Mode"
-              title="Car Dashboard HUD [C]"
-              className={iconBtn(false, 'hidden sm:flex')}
-            >
-              <Car className="w-3.5 h-3.5 text-amber-300" />
-            </button>
-          )}
 
           {/* Volume control with clean floating popup (zero overlap) */}
           <div
