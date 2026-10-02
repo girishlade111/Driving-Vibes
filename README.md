@@ -295,3 +295,9 @@ driving-vibes/
 ## License
 
 Personal use. No warranties.
+
+---
+
+## Credits
+
+Built by [Girish Lade](https://ladestack.in)
